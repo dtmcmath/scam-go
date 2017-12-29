@@ -8,16 +8,13 @@ import (
 	"unicode/utf8"
 )
 
+type itemType int
+
 // item represents a token returned from the scanner.
 type item struct {
     typ itemType  // Type, such as itemNumber.
     val string    // Value, such as "23.2".
 }
-
-const (
-	eof rune = utf8.RuneError // Find a better "eof" rune
-)
-type itemType int
 
 // itemType identifies the type of lex items.
 const (
@@ -32,6 +29,27 @@ const (
 	itemSymbol                // abc
 	itemWhitespace            // ... maybe not needed
 	itemQuotationMark         // " not yet implemented
+)
+
+func (i item) String() string {
+	switch i.typ {
+	case itemEOF: return "EOF"
+	case itemLparen: return "LPAREN"
+	case itemRparen: return "RPAREN"
+	case itemDot: return "DOT"
+	case itemNumber: return fmt.Sprintf("NUMBER(%s)", i.val)
+	case itemQuotedSymbol: return fmt.Sprintf("QSYMBOL(%s)", i.val)
+	case itemSymbol: return fmt.Sprintf("SYMBOL(%s)", i.val)
+	case itemWhitespace: return "WHITESPACE"
+	case itemQuotationMark: return "QUOTE"
+	case itemError: return fmt.Sprintf("ERROR(%s)", i.val)
+	default:
+		panic(fmt.Sprintf("No way:  token %v", i))
+	}
+}
+
+const (
+	eof rune = utf8.RuneError // Find a better "eof" rune
 )
 
 const (
