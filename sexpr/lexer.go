@@ -265,8 +265,8 @@ func lexNumber(l *lexer) stateFn {
 
 func lexQuotedSymbol(l *lexer) stateFn {
 	if !l.acceptPredicate(unicode.IsLetter) {
-		return l.errorf("bad quote syntax: %q",
-			l.input[l.start:l.pos])
+		return l.errorf("bad quote syntax starting %q",
+			l.input[-1+l.start:])
 	}
 	l.acceptRunPredicate(unicode.IsLetter, unicode.IsNumber)
 	l.emit(itemQuotedSymbol)

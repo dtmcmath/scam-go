@@ -69,3 +69,15 @@ func ExampleLexer() {
 	// RPAREN
 	// EOF
 }
+
+func ExampleBadLexing () {
+	sexpr := "(add '0 1)"
+		_, ch := Lex("test", sexpr)
+	for tok := range ch {
+		fmt.Println(tok)
+	}
+	// Output:
+	// LPAREN
+	// SYMBOL(add)
+	// ERROR(bad quote syntax starting "'0 1)")
+}
