@@ -63,7 +63,7 @@ func ExampleLexer() {
 		fmt.Println(tok)
 	}
 	// Output:
-	// QSYMBOL('abc)
+	// QSYMBOL(abc)
 	// LPAREN
 	// NUMBER(3.14159)
 	// RPAREN

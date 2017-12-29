@@ -220,6 +220,7 @@ func lexText(l *lexer) stateFn {
 			l.backup()
 			return lexNumber
 		case r == '\'':
+			l.ignore()
 			return lexQuotedSymbol
 		case unicode.IsLetter(r):
 			l.backup()
