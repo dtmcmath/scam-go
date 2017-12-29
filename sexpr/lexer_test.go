@@ -81,6 +81,18 @@ func ExampleLexer() {
 	// EOF
 }
 
+
+func ExampleLexing2 () {
+	sexpr := "+"
+		_, ch := Lex("test", sexpr)
+	for tok := range ch {
+		fmt.Println(tok)
+	}
+	// Output:
+	// SYMBOL(+)
+	// EOF
+}
+
 func ExampleBadLexing () {
 	sexpr := "(add '0 1)"
 		_, ch := Lex("test", sexpr)

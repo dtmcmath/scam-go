@@ -81,6 +81,8 @@ func (l *lexer) emit(t itemType) {
 // next returns the next rune in the input.
 func (l *lexer) next() (r rune) {
     if l.pos >= len(l.input) {
+		// BUG or FEATURE?  If used in "peek", this will make backup
+		// impossible.
         l.width = 0
         return eof
     }
@@ -95,7 +97,7 @@ func (l *lexer) ignore() {
     l.start = l.pos
 }
 // backup steps back one rune.
-// Can be called only once per call of next.
+// Can be called only once per call of next and not after a peek.
 func (l *lexer) backup() {
     l.pos -= l.width
 }
@@ -208,7 +210,8 @@ func lexText(l *lexer) stateFn {
 		case r == ')':
 			l.emit(itemRparen)
 		case r == '+' || r == '-':
-			if unicode.IsSpace(l.peek()) {
+			peek := l.peek()
+			if unicode.IsSpace(peek) || peek == eof {
 				return lexSymbol
 			} else {
 				l.backup()
