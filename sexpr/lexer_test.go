@@ -79,5 +79,16 @@ func ExampleBadLexing () {
 	// Output:
 	// LPAREN
 	// SYMBOL(add)
-	// ERROR(bad quote syntax starting "'0 1)")
+	// ERROR(quoted symbols must start with a letter, not "'0 1)")
+}
+
+func ExampleBadLexing2 () {
+	sexpr := "(0add 0 1)"
+		_, ch := Lex("test", sexpr)
+	for tok := range ch {
+		fmt.Println(tok)
+	}
+	// Output:
+	// LPAREN
+	// ERROR(bad number syntax: "0a")
 }
