@@ -41,6 +41,17 @@ func TestSimpleLexer(t *testing.T) {
 				{ itemEOF, "" },
 			},
 		},
+		{
+			"(+ 1 2)",
+			[]item {
+				{ itemLparen, "(" },
+				{ itemSymbol, "+" },
+				{ itemNumber, "1" },
+				{ itemNumber, "2" },
+				{ itemRparen, ")" },
+				{ itemEOF, ""},
+			},
+		},
 	}
 	for _, test := range tests {
 		_, ch := Lex("test", test.input)

@@ -216,14 +216,21 @@ func lexText(l *lexer) stateFn {
 			l.emit(itemLparen)
 		case r == ')':
 			l.emit(itemRparen)
-		case r == '+' || r == '-' || '0' <= r && r <= '9':
+		case r == '+' || r == '-':
+			if unicode.IsSpace(l.peek()) {
+				return lexSymbol
+			} else {
+				l.backup()
+				return lexNumber
+			}
+		case '0' <= r && r <= '9':
 			l.backup()
 			return lexNumber
 		case r == '\'':
 			l.ignore()
 			return lexQuotedSymbol
 		case unicode.IsLetter(r):
-			l.backup()
+			// No backup; lexSymbol expects to have read one
 			return lexSymbol
 		default:
 			return l.errorf("unrecognized '%c' in '%q'", r, l.input[l.start:l.pos])
@@ -265,7 +272,7 @@ func lexNumber(l *lexer) stateFn {
 
 func lexQuotedSymbol(l *lexer) stateFn {
 	if !l.acceptPredicate(unicode.IsLetter) {
-		return l.errorf("bad quote syntax starting %q",
+		return l.errorf("quoted symbols must start with a letter, not %q",
 			l.input[-1+l.start:])
 	}
 	l.acceptRunPredicate(unicode.IsLetter, unicode.IsNumber)
@@ -274,10 +281,8 @@ func lexQuotedSymbol(l *lexer) stateFn {
 }
 
 func lexSymbol(l *lexer) stateFn {
-	if !l.acceptPredicate(unicode.IsLetter) {
-		return l.errorf("bad symbol syntax: %q",
-			l.input[l.start:l.pos])
-	}
+	// We've already accepted a letter.  Go until the first
+	// non-alphanumeric thing
 	l.acceptRunPredicate(unicode.IsLetter, unicode.IsNumber)
 	l.emit(itemSymbol)
 	return lexText
