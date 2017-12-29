@@ -52,15 +52,6 @@ const (
 	eof rune = utf8.RuneError // Find a better "eof" rune
 )
 
-const (
-	leftParen = '('
-	rightParen = ')'
-	dot = '.'
-	singleQuote = '\''
-	doubleQuore = '"'
-)
-
-
 type lexer struct {
     name  string    // used only for error reports.
     input string    // the string being scanned.
@@ -287,36 +278,3 @@ func lexSymbol(l *lexer) stateFn {
 	l.emit(itemSymbol)
 	return lexText
 }
-
-// func lexLeftMeta(l *lexer) stateFn {
-//     l.pos += len(leftMeta)
-//     l.emit(itemLeftMeta)
-//     return lexInsideAction    // Now inside {{ }}.
-// }
-
-
-// func lexInsideAction(l *lexer) stateFn {
-//     // Either number, quoted string, or identifier.
-//     // Spaces separate and are ignored.
-//     // Pipe symbols separate and are emitted.
-//     for {
-//         if strings.HasPrefix(l.input[l.pos:], rightMeta) {
-//             return lexRightMeta
-//         }
-//         switch r := l.next(); {
-//         case r == eof || r == '\n':
-//             return l.errorf("unclosed action")
-//         case isSpace(r):
-//             l.ignore()
-//         case r == '|':
-//             l.emit(itemPipe)
-//         case r == '"':
-//             return lexQuote
-//         case r == '`':
-//             return lexRawQuote
-//         case r == '+' || r == '-' || '0' <= r && r <= '9':
-//             l.backup()
-//             return lexNumber
-//         case isAlphaNumeric(r):
-//             l.backup()
-//             return lexIdentifier			
