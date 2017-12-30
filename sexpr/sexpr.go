@@ -66,6 +66,15 @@ var mkAtomSymbol = atomFactory(atomSymbol, atomSymbolPool)
 var mkAtomQuoted = atomFactory(atomQuotedSymbol, atomQuotedPool)
 var mkAtomNumber = atomFactory(atomNumber, atomNumberPool)
 
+// Pre-make all the primitive symbols.  Maybe these need to be their
+// own things; we'll see how Evaluate goes
+var atomPrimitives = make(map[itemType]Atom)
+func init() {
+	for typ, str := range primitives {
+		atomPrimitives[typ] = mkAtomSymbol(str)
+	}
+}
+
 type Cons struct {
 	car Sexpr
 	cdr Sexpr

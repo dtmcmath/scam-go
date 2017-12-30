@@ -1,8 +1,9 @@
 package sexpr
 
 import (
+	"errors"
 	"fmt"
-//	"log"
+	// "log"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -30,7 +31,15 @@ const (
 	itemBoolean               // #t or #f
 	itemWhitespace            // ... maybe not needed
 	itemQuotationMark         // " not yet implemented
+	// Primitives
+	itemMinus
+	itemPlus
 )
+
+var primitives = map[itemType]string {
+	itemMinus: "-",
+	itemPlus:  "+",
+}
 
 func (i item) String() string {
 	switch i.typ {
@@ -46,7 +55,10 @@ func (i item) String() string {
 	case itemQuotationMark: return "QUOTE"
 	case itemError: return fmt.Sprintf("ERROR(%s)", i.val)
 	default:
-		panic(fmt.Sprintf("No way:  token %v", i))
+		if _, ok := primitives[i.typ] ; ok {
+			return fmt.Sprintf("KW(%s)", i.val)
+		}
+		panic(fmt.Sprintf("No way:  token {%v, $v}", i.typ, i.val))
 	}
 }
 
@@ -92,6 +104,27 @@ func (l *lexer) next() (r rune) {
         utf8.DecodeRuneInString(l.input[l.pos:])
     l.pos += l.width
     return r
+}
+
+// consume positions the head (pos) at the end of s
+// If s is not the next thing, return an error
+func (l *lexer) consume(s string) error {
+	for _, r := range s {
+		tst := l.next()
+		if tst != r {
+			e := fmt.Sprintf("Mismatched attempt to consume %q; found %q",
+				s, l.input[l.start:l.pos])
+			return errors.New(e)
+		}
+	}
+	return nil
+}
+
+func (l *lexer) mustConsume(s string) {
+	err := l.consume(s)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // ignore skips over the pending input before this point.
@@ -198,7 +231,17 @@ func Lex(name, input string) (*lexer, chan item) {
 // lexText reads any initial whitespace up to the first interesting thing.
 func lexText(l *lexer) stateFn {
     loop: for {
-		switch r := l.next(); {
+		for typ, str := range primitives {
+			if strings.HasPrefix(l.input[l.pos:], str + " ") {
+				// Found a primitive
+				l.mustConsume(str)
+				l.emit(typ)
+				continue loop
+			}
+		}
+		// Reaching here, no primitives match.
+
+		switch r := l.next() ; {
 		case r == eof:
 			break loop
 		case unicode.IsSpace(r):
@@ -211,15 +254,7 @@ func lexText(l *lexer) stateFn {
 			l.emit(itemLparen)
 		case r == ')':
 			l.emit(itemRparen)
-		case r == '+' || r == '-':
-			peek := l.peek()
-			if unicode.IsSpace(peek) || peek == eof {
-				return lexSymbol
-			} else {
-				l.backup()
-				return lexNumber
-			}
-		case '0' <= r && r <= '9':
+		case r == '+' || r == '-' || '0' <= r && r <= '9':
 			l.backup()
 			return lexNumber
 		case r == '\'':

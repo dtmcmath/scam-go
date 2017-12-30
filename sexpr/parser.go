@@ -97,6 +97,12 @@ func (p *parser) run() {
 	defer close(p.sexprs)
 	for {
 		tok := <- p.items
+
+		if a, ok := atomPrimitives[tok.typ] ; ok {
+			p.emit(a)
+			continue
+		}
+		// else
 		switch tok.typ {
 		case itemEOF:
 			// If there's something on the stack, we have a problem
