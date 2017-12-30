@@ -198,7 +198,7 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
     return nil
 }
 
-func Lex(name, input string) (*lexer, chan item) {
+func lex(name, input string) (*lexer, chan item) {
     l := &lexer{
         name:  name,
         input: input,

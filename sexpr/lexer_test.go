@@ -54,7 +54,7 @@ func TestSimpleLexer(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		_, ch := Lex("test", test.input)
+		_, ch := lex("test", test.input)
 		var got []item
 		for it := range ch {
 			got = append(got, it)
@@ -69,7 +69,7 @@ func TestSimpleLexer(t *testing.T) {
 			
 func ExampleLexer() {
 	sexpr := " 'abc (3.14159)"
-	_, ch := Lex("test", sexpr)
+	_, ch := lex("test", sexpr)
 	for tok := range ch {
 		fmt.Println(tok)
 	}
@@ -89,7 +89,7 @@ func ExampleLexing2 () {
 	// a number.  The Parser will reject such an expression as a bad
 	// number.
 	sexpr := "+"
-		_, ch := Lex("test", sexpr)
+		_, ch := lex("test", sexpr)
 	for tok := range ch {
 		fmt.Println(tok)
 	}
@@ -100,7 +100,7 @@ func ExampleLexing2 () {
 
 func ExampleBadLexing () {
 	sexpr := "(add '0 1)"
-		_, ch := Lex("test", sexpr)
+		_, ch := lex("test", sexpr)
 	for tok := range ch {
 		fmt.Println(tok)
 	}
@@ -112,7 +112,7 @@ func ExampleBadLexing () {
 
 func ExampleBadLexing2 () {
 	sexpr := "(0add 0 1)"
-		_, ch := Lex("test", sexpr)
+		_, ch := lex("test", sexpr)
 	for tok := range ch {
 		fmt.Println(tok)
 	}

@@ -27,12 +27,12 @@ func TestSimpleParse(t *testing.T) {
 		want []Sexpr
 	}{
 		{ "()", []Sexpr{ Nil } },
-		{ "(1)", []Sexpr{ Cons{atomone, Nil} } },
+		{ "(1)", []Sexpr{ sexpr_cons{atomone, Nil} } },
 		{ "1", []Sexpr{ atomone } },
 		{
 			" (1) 2 ",
 			[]Sexpr{
-				Cons{atomone, Nil},
+				sexpr_cons{atomone, Nil},
 				atomtwo,
 			},
 		},
@@ -43,10 +43,10 @@ func TestSimpleParse(t *testing.T) {
 		{
 			"(cons 1 2)",
 			[]Sexpr{
-				Cons{
+				sexpr_cons{
 					atomPrimitives[itemCons],
-					Cons{atomone,
-						Cons{atomtwo,Nil},
+					sexpr_cons{atomone,
+						sexpr_cons{atomtwo,Nil},
 					},
 				},
 			},
@@ -55,16 +55,16 @@ func TestSimpleParse(t *testing.T) {
 		// 	"(eq? (car (cons 1 2)) 1)",
 		// 	// Bleh.  I've lost track!!!
 		// 	[]Sexpr{
-		// 		Cons{
+		// 		sexpr_cons{
 		// 			atomPrimitives[itemEqQ],
-		// 			Cons{
-		// 				Cons{ atomPrimitives[itemCar],
-		// 					Cons{
-		// 						Cons{atomone, atomtwo},
+		// 			sexpr_cons{
+		// 				sexpr_cons{ atomPrimitives[itemCar],
+		// 					sexpr_cons{
+		// 						sexpr_cons{atomone, atomtwo},
 		// 						Nil,
 		// 					},
 		// 				},
-		// 				Cons{ atomone, Nil },
+		// 				sexpr_cons{ atomone, Nil },
 		// 			},
 		// 		},
 		// 	},

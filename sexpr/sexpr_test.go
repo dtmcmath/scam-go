@@ -18,15 +18,15 @@ func TestConsify(t *testing.T) {
 		},
 		{
 			[]Sexpr{Nil},
-			Cons{Nil, Nil},
+			sexpr_cons{Nil, Nil},
 		},
 		{
 			[]Sexpr{atomfoo},
-			Cons{atomfoo, Nil},
+			sexpr_cons{atomfoo, Nil},
 		},
 		{
 			[]Sexpr{atomfoo, atomone},
-			Cons{atomfoo, Cons{atomone, Nil}},
+			sexpr_cons{atomfoo, sexpr_cons{atomone, Nil}},
 		},
 	}
 

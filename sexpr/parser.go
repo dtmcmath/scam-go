@@ -7,7 +7,7 @@ import (
 )
 
 // The Parser consumes tokens and emits S-expressions.  An
-// S-expression is either an Atom or a Cons of two S-expressions.
+// S-expression is either an sexpr_atom or a sexpr_cons of two S-expressions.
 
 type nodeOfSexprLists struct {
 	val []Sexpr
@@ -88,7 +88,7 @@ func Parse(name, input string) (*parser, <-chan Sexpr) {
 		sexprs: make(chan Sexpr),
 		stack: &stackOfSexprLists{nil},
 	}
-	p.lex, p.items = Lex("lexer_"+name, input)
+	p.lex, p.items = lex("lexer_"+name, input)
 	go p.run()
 	return p, p.sexprs
 }
