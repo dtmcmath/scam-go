@@ -137,13 +137,3 @@ type sexpr_error struct {
 
 // A Sexpr includes sexpr_atom and sexpr_cons.  It's a discriminated union
 type Sexpr interface{}
-
-// consify takes a list of S-expressions and returns a single
-// S-expression that is the List (sexpr_cons's) represented by them.
-func consify(slist []Sexpr) Sexpr {
-	if len(slist) == 0 {
-		return Nil
-	}
-	// else
-	return sexpr_cons{slist[0], consify(slist[1:])}
-}
