@@ -27,6 +27,7 @@ const (
 	itemNumber                // a numeric thing
 	itemQuotedSymbol          // 'abc
 	itemSymbol                // abc
+	itemBoolean               // #t or #f
 	itemWhitespace            // ... maybe not needed
 	itemQuotationMark         // " not yet implemented
 )
@@ -40,6 +41,7 @@ func (i item) String() string {
 	case itemNumber: return fmt.Sprintf("NUMBER(%s)", i.val)
 	case itemQuotedSymbol: return fmt.Sprintf("QSYMBOL(%s)", i.val)
 	case itemSymbol: return fmt.Sprintf("SYMBOL(%s)", i.val)
+	case itemBoolean: return fmt.Sprintf("BOOL(%s)", i.val)
 	case itemWhitespace: return "WHITESPACE"
 	case itemQuotationMark: return "QUOTE"
 	case itemError: return fmt.Sprintf("ERROR(%s)", i.val)
@@ -226,6 +228,9 @@ func lexText(l *lexer) stateFn {
 		case unicode.IsLetter(r):
 			// No backup; lexSymbol expects to have read one
 			return lexSymbol
+		case r == '#':
+			l.ignore() // Consume
+			return lexBoolean
 		default:
 			return l.errorf("unrecognized '%c' in '%q'", r, l.input[l.start:l.pos])
 		}
@@ -279,5 +284,21 @@ func lexSymbol(l *lexer) stateFn {
 	// non-alphanumeric thing
 	l.acceptRunPredicate(unicode.IsLetter, unicode.IsNumber)
 	l.emit(itemSymbol)
+	return lexText
+}
+
+func lexBoolean(l *lexer) stateFn {
+	if !l.accept("tf") {
+		return l.errorf("Unrecognized boolean %q",
+			l.input[-1+l.start:l.pos])
+	}
+	// else
+	peek := l.peek()
+	if !(unicode.IsSpace(peek) || peek == eof) {
+		return l.errorf("Unrecognized boolean %q",
+			l.input[-1+l.start:1+l.pos])
+	}
+	// else
+	l.emit(itemBoolean)
 	return lexText
 }

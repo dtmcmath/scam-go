@@ -11,6 +11,7 @@ const (
 	atomNumber
 	atomSymbol
 	atomQuotedSymbol
+	atomBoolean
 )
 
 type Atom struct {
@@ -21,6 +22,13 @@ type Atom struct {
 func (a Atom) String() string {
 	switch a.typ {
 	case atomNil: return "Nil"
+	case atomBoolean:
+		switch a {
+		case True: return "#t"
+		case False: return "#f"
+		default:
+			panic(fmt.Sprintf("The false boolean atom %+v", a))
+		}
 	case atomNumber: return fmt.Sprintf("N(%s)", a.name)
 	case atomSymbol: return fmt.Sprintf("Sym(%s)", a.name)
 	case atomQuotedSymbol: return fmt.Sprintf("Quote(%s)", a.name)
@@ -30,8 +38,11 @@ func (a Atom) String() string {
 }
 
 var (
-	// Nil is really a constant, but we call it a variable
+	// These are really a constant, but we call them variables.
+	// Please don't try to change them.
 	Nil Atom = Atom{atomNil, "nil"}
+	True Atom = Atom{atomBoolean, "t"}
+	False Atom = Atom{atomBoolean, "f"}
 )
 // TODO:  Different string representations of the same number are
 // different atoms; are they comparable?

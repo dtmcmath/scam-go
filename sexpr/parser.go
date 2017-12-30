@@ -121,6 +121,13 @@ func (p *parser) run() {
 			p.emit(mkAtomNumber(tok.val))
 		case itemSymbol:
 			p.emit(mkAtomSymbol(tok.val))
+		case itemBoolean:
+			switch tok.val {
+			case "t": p.emit(True)
+			case "f": p.emit(False)
+			default:
+				p.paniqf("Illegal boolean token %v", tok)
+			}
 		case itemQuotedSymbol:
 			p.emit(mkAtomQuoted(tok.val))
 		case itemQuotationMark, itemDot:

@@ -36,6 +36,10 @@ func TestSimpleParse(t *testing.T) {
 				atomtwo,
 			},
 		},
+		{
+			"#t #f",
+			[]Sexpr{True, False},
+		},
 	}
 
 	for _, test := range tests {
@@ -52,7 +56,7 @@ func TestSimpleParse(t *testing.T) {
 	}
 }
 
-func ExampleSimpleParse() {
+func ExampleParse_nil() {
 	s := "()"
 	_, ch := Parse("test", s)
 	for sx := range ch {
@@ -62,7 +66,7 @@ func ExampleSimpleParse() {
 	// Nil
 }
 
-func ExampleSimpleParse2() {
+func ExampleParse_list() {
 	s := "(+ 1 2)"
 	_, ch := Parse("test", s)
 	for sx := range ch {
@@ -70,4 +74,15 @@ func ExampleSimpleParse2() {
 	}
 	// Output:
 	// Cons(Sym(+), Cons(N(1), Cons(N(2), Nil)))
+}
+
+func ExampleParse_multiple() {
+	s := "#f (+)"
+	_, ch := Parse("test", s)
+	for sx := range ch {
+		fmt.Println(sx)
+	}
+	// Output:
+	// #f
+	// Cons(Sym(+), Nil)
 }
