@@ -31,23 +31,7 @@ const (
 	itemBoolean               // #t or #f
 	itemWhitespace            // ... maybe not needed
 	itemQuotationMark         // " not yet implemented
-	// Primitives
-	itemMinus
-	itemPlus
-	itemCons
-	itemCar
-	itemCdr
-	itemEqQ
 )
-
-var primitives = map[itemType]string {
-	itemMinus: "-",
-	itemPlus:  "+",
-	itemCons:  "cons",
-	itemCar:   "car",
-	itemCdr:   "cdr",
-	itemEqQ:   "eq?",
-}
 
 func (i item) String() string {
 	switch i.typ {
@@ -63,9 +47,6 @@ func (i item) String() string {
 	case itemQuotationMark: return "QUOTE"
 	case itemError: return fmt.Sprintf("ERROR(%s)", i.val)
 	default:
-		if _, ok := primitives[i.typ] ; ok {
-			return fmt.Sprintf("KW(%s)", i.val)
-		}
 		panic(fmt.Sprintf("No way:  token {%v, $v}", i.typ, i.val))
 	}
 }
@@ -239,16 +220,6 @@ func lex(name, input string) (*lexer, chan item) {
 // lexText reads any initial whitespace up to the first interesting thing.
 func lexText(l *lexer) stateFn {
     loop: for {
-		for typ, str := range primitives {
-			if strings.HasPrefix(l.input[l.pos:], str + " ") {
-				// Found a primitive
-				l.mustConsume(str)
-				l.emit(typ)
-				continue loop
-			}
-		}
-		// Reaching here, no primitives match.
-
 		switch r := l.next() ; {
 		case r == eof:
 			break loop
@@ -262,7 +233,15 @@ func lexText(l *lexer) stateFn {
 			l.emit(itemLparen)
 		case r == ')':
 			l.emit(itemRparen)
-		case r == '+' || r == '-' || '0' <= r && r <= '9':
+		case r == '+' || r == '-':
+			peek := l.peek()
+			if unicode.IsSpace(peek) || peek == eof {
+				return lexSymbol
+			} else {
+				l.backup()
+				return lexNumber
+			}
+		case '0' <= r && r <= '9':
 			l.backup()
 			return lexNumber
 		case r == '\'':

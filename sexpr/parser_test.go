@@ -44,7 +44,7 @@ func TestSimpleParse(t *testing.T) {
 			"(cons 1 2)",
 			[]Sexpr{
 				sexpr_cons{
-					atomPrimitives[itemCons],
+					atomPrimitives["cons"],
 					sexpr_cons{atomone,
 						sexpr_cons{atomtwo,Nil},
 					},

@@ -45,7 +45,7 @@ func TestSimpleLexer(t *testing.T) {
 			"(+ 1 2)",
 			[]item {
 				{ itemLparen, "(" },
-				{ itemPlus, "+" },
+				{ itemSymbol, "+" },
 				{ itemNumber, "1" },
 				{ itemNumber, "2" },
 				{ itemRparen, ")" },
@@ -83,18 +83,13 @@ func ExampleLexer() {
 
 
 func ExampleLexing2 () {
-	// The answer here is a little controversial.  The lexer thinks a
-	// bare "+" looks more like a number than the keyword.  It's
-	// neither, so I really can't complain that the lexer thinks it's
-	// a number.  The Parser will reject such an expression as a bad
-	// number.
 	sexpr := "+"
 		_, ch := lex("test", sexpr)
 	for tok := range ch {
 		fmt.Println(tok)
 	}
 	// Output:
-	// NUMBER(+)
+	// SYMBOL(+)
 	// EOF
 }
 
