@@ -34,11 +34,19 @@ const (
 	// Primitives
 	itemMinus
 	itemPlus
+	itemCons
+	itemCar
+	itemCdr
+	itemEqQ
 )
 
 var primitives = map[itemType]string {
 	itemMinus: "-",
 	itemPlus:  "+",
+	itemCons:  "cons",
+	itemCar:   "car",
+	itemCdr:   "cdr",
+	itemEqQ:   "eq?",
 }
 
 func (i item) String() string {
@@ -317,7 +325,7 @@ func lexQuotedSymbol(l *lexer) stateFn {
 func lexSymbol(l *lexer) stateFn {
 	// We've already accepted a letter.  Go until the first
 	// non-alphanumeric thing
-	l.acceptRunPredicate(unicode.IsLetter, unicode.IsNumber)
+	l.acceptRunPredicate(unicode.IsLetter, unicode.IsNumber, unicode.IsPunct)
 	l.emit(itemSymbol)
 	return lexText
 }

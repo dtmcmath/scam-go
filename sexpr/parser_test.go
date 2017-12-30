@@ -40,6 +40,35 @@ func TestSimpleParse(t *testing.T) {
 			"#t #f",
 			[]Sexpr{True, False},
 		},
+		{
+			"(cons 1 2)",
+			[]Sexpr{
+				Cons{
+					atomPrimitives[itemCons],
+					Cons{atomone,
+						Cons{atomtwo,Nil},
+					},
+				},
+			},
+		},
+		// {
+		// 	"(eq? (car (cons 1 2)) 1)",
+		// 	// Bleh.  I've lost track!!!
+		// 	[]Sexpr{
+		// 		Cons{
+		// 			atomPrimitives[itemEqQ],
+		// 			Cons{
+		// 				Cons{ atomPrimitives[itemCar],
+		// 					Cons{
+		// 						Cons{atomone, atomtwo},
+		// 						Nil,
+		// 					},
+		// 				},
+		// 				Cons{ atomone, Nil },
+		// 			},
+		// 		},
+		// 	},
+		// },
 	}
 
 	for _, test := range tests {
