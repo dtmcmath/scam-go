@@ -5,9 +5,14 @@ import (
 	"testing"
 )
 
+var (
+	atomfoo = mkAtomSymbol("foo")
+	atomone = mkAtomNumber("1")
+	atomtwo = mkAtomNumber("2")
+	atomthree = mkAtomNumber("3")
+)
+
 func TestConsify(t *testing.T) {
-	atomfoo := mkAtomSymbol("foo")
-	atomone := mkAtomNumber("1")
 	tests := []struct {
 		input []Sexpr
 		want Sexpr
@@ -36,5 +41,32 @@ func TestConsify(t *testing.T) {
 				test.input, got, test.want,
 			)
 		}
+	}
+}
+
+func TestUnconsify(t *testing.T) {
+	input := "(1 2 3 2)"
+	want  := []Sexpr{
+		atomone,
+		atomtwo,
+		atomthree,
+		atomtwo,
+	}
+	_, sexprs := Parse("test", input)
+	list := <- sexprs
+	if got, err := unconsify(list) ; err != nil {
+		t.Error(err)
+	} else if !deepEqualSexpr(got, want) {
+		t.Errorf("unconsify[%s] = %v, want %v",
+			input, got, want,
+		)
+	}
+}
+func TestUnconsifyErr(t *testing.T) {
+	sinput := mkCons(atomone, atomtwo)
+	if _, err := unconsify(sinput) ; err == nil {
+		t.Error("unconsify[%s] did not give an error", sinput)
+	} else {
+		t.Error(err)
 	}
 }
