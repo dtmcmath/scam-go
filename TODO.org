@@ -1,0 +1,96 @@
+#+TITLE:  Things SCAM Should Do
+#+AUTHOR: David McMath
+#+EMAIL:  mcdave@mheducation.com
+#+OPTIONS: ^:{} toc:nil
+#+SEQ_TODO: TODO INPROGRESS(!) | DONE(!)
+
+This document sketches, somewhat randomly, things that need to get
+done to make SCAM a thing of true beauty.
+
+#+TOC: headlines
+
+* Issues
+
+** Non-integer arithmetic is impossible
+
+Should =(eq? 3 3.0)= be =#t= or =#f=?  As of now, the lexer tries to
+understand floating point numbers, but the evaluator for =+= only
+works on integers.
+
+Since SCAM isn't really a calculator, this is a low-priority issue.
+
+** Lex errors are very cryptic
+
+** Quote doesn't match real examples
+
+One cannot write
+
+#+BEGIN_SRC scheme
+(car (cdr '((b) (x y) ((c)))))
+#+END_SRC
+
+Oops.  We actually got a lot of that stuff backwards, even in the
+"official" examples in pages like
+[[./sexpr/parser_test.go][parser_test examples]].  Oops².
+
+* Desiderata
+
+** REPL
+
+It should be straightforward to let a user type and just see evaluated
+expressions as they become available.
+
+Similarly, one could develop a
+server similar to
+[[https://github.com/adonovan/gopl.io/blob/master/ch8/reverb2/reverb.go][the "reverb" example from /The Go Programming Language/]].
+Something that would reflect back the evaluated expression.
+
+** Symbol tables
+
+To define keywords *define* and *let*, we need symbol tables into
+which to put those values
+
+** λ
+
+I really want a keyword "*lambda*".  With that, we could define
+
+#+BEGIN_SRC scheme
+(define cons
+  (lambda (a b)
+    (lambda (c)
+      (if (eq? c 'car)
+          a
+          (if (eq? c 'cdr)
+              b
+          )
+      )
+    )
+  )
+)
+(define car (lambda (c) (c 'car)))
+(define cdr (lambda (c) (c 'cdr)))
+#+END_SRC
+
+** Separate parse errors from evaluation errors
+
+I need to read more about what an "error" S-expression looks like.
+Right now, they just look like pretty generic Go structs.
+
+** Bignums
+
+Don't you wonder what
+
+#+BEGIN_SRC scheme
+(+ 3141592653589793238462643383279502884197169399375105820974944592307
+   2718281828459045235360287471352662497757247093699959574966967627724)
+#+END_SRC
+
+is?
+
+* Roadmap
+
+This section tries to put some of the developments into a sequence.
+
+** Parse from a stream
+
+** Cons-es recycled
