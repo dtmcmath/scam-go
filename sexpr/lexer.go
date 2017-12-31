@@ -235,7 +235,7 @@ func lexText(l *lexer) stateFn {
 			l.emit(itemRparen)
 		case r == '+' || r == '-':
 			peek := l.peek()
-			if unicode.IsSpace(peek) || peek == eof {
+			if unicode.IsSpace(peek) || peek == eof || peek == ')' {
 				return lexSymbol
 			} else {
 				l.backup()
@@ -304,7 +304,13 @@ func lexQuotedSymbol(l *lexer) stateFn {
 func lexSymbol(l *lexer) stateFn {
 	// We've already accepted a letter.  Go until the first
 	// non-alphanumeric thing
-	l.acceptRunPredicate(unicode.IsLetter, unicode.IsNumber, unicode.IsPunct)
+	l.acceptRunPredicate(
+		unicode.IsLetter,
+		unicode.IsNumber,
+		func(c rune) bool {
+			return unicode.IsPunct(c) && c != ')'
+		},
+	)
 	l.emit(itemSymbol)
 	return lexText
 }
