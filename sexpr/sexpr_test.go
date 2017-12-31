@@ -23,20 +23,20 @@ func TestConsify(t *testing.T) {
 		},
 		{
 			[]Sexpr{Nil},
-			sexpr_cons{Nil, Nil},
+			mkCons(Nil, Nil),
 		},
 		{
 			[]Sexpr{atomfoo},
-			sexpr_cons{atomfoo, Nil},
+			mkCons(atomfoo, Nil),
 		},
 		{
 			[]Sexpr{atomfoo, atomone},
-			sexpr_cons{atomfoo, sexpr_cons{atomone, Nil}},
+			mkCons(atomfoo, mkCons(atomone, Nil)),
 		},
 	}
 
 	for _, test := range tests {
-		if got := consify(test.input); got != test.want {
+		if got := consify(test.input); !equalSexpr(got, test.want) {
 			t.Errorf("consify(%s) = %v, want %v",
 				test.input, got, test.want,
 			)
@@ -66,7 +66,5 @@ func TestUnconsifyErr(t *testing.T) {
 	sinput := mkCons(atomone, atomtwo)
 	if _, err := unconsify(sinput) ; err == nil {
 		t.Error("unconsify[%s] did not give an error", sinput)
-	} else {
-		t.Error(err)
 	}
 }

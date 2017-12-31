@@ -81,13 +81,16 @@ var mkAtomSymbol = atomFactory(atomSymbol, atomSymbolPool)
 var mkAtomQuoted = atomFactory(atomQuotedSymbol, atomQuotedPool)
 var mkAtomNumber = atomFactory(atomNumber, atomNumberPool)
 
+var currentConsNumber int64
 type sexpr_cons struct {
 	car Sexpr
 	cdr Sexpr
+	serialNumber int64 // Keeps separate objects different
 }
 
 func mkCons(car Sexpr, cdr Sexpr) sexpr_cons {
-	return sexpr_cons{car, cdr}
+	defer func() {currentConsNumber += 1}()
+	return sexpr_cons{car, cdr, currentConsNumber}
 }
 
 func getCar(s Sexpr) (Sexpr, error) {

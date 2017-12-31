@@ -14,7 +14,7 @@ func consify(slist []Sexpr) Sexpr {
 		return Nil
 	}
 	// else
-	return sexpr_cons{slist[0], consify(slist[1:])}
+	return mkCons(slist[0], consify(slist[1:]))
 }
 
 func unconsify(list Sexpr) ([]Sexpr, error) {
@@ -36,3 +36,35 @@ func unconsify(list Sexpr) ([]Sexpr, error) {
 	}
 	return ans, nil
 }
+
+// Test for equality (not eq?-ness) of expressions.  For everything
+// except Cons-es, it's just identity in the normal Go-sense.  For
+// Cons cells, we need car and cdr to be equal, but not serial number.
+func equalSexpr(a Sexpr, b Sexpr) bool {
+	switch a := a.(type) {
+	case sexpr_cons:
+		switch b := b.(type) {
+		case sexpr_cons:
+			return equalSexpr(a.car, b.car) &&
+				equalSexpr(a.cdr, b.cdr)
+		default:
+			return false
+		}
+	default: return a == b
+	}
+}
+
+func deepEqualSexpr(a []Sexpr, b []Sexpr) bool {
+	for len(a) == len(b) {
+		if len(a) == 0 {
+			return true
+		} else if !equalSexpr(a[0], b[0]) {
+			return false
+		}
+		// else
+		a = a[1:]
+		b = b[1:]
+	}
+	return false
+}
+

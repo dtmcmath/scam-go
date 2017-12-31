@@ -5,20 +5,6 @@ import (
 	"testing"
 )
 
-func deepEqualSexpr(a []Sexpr, b []Sexpr) bool {
-	for len(a) == len(b) {
-		if len(a) == 0 {
-			return true
-		} else if a[0] != b[0] {
-			return false
-		}
-		// else
-		a = a[1:]
-		b = b[1:]
-	}
-	return false
-}
-
 func TestSimpleParse(t *testing.T) {
 	atomone := mkAtomNumber("1")
 	atomtwo := mkAtomNumber("2")
@@ -27,12 +13,12 @@ func TestSimpleParse(t *testing.T) {
 		want []Sexpr
 	}{
 		{ "()", []Sexpr{ Nil } },
-		{ "(1)", []Sexpr{ sexpr_cons{atomone, Nil} } },
+		{ "(1)", []Sexpr{ mkCons(atomone, Nil) } },
 		{ "1", []Sexpr{ atomone } },
 		{
 			" (1) 2 ",
 			[]Sexpr{
-				sexpr_cons{atomone, Nil},
+				mkCons(atomone, Nil),
 				atomtwo,
 			},
 		},
@@ -43,30 +29,30 @@ func TestSimpleParse(t *testing.T) {
 		{
 			"(cons 1 2)",
 			[]Sexpr{
-				sexpr_cons{
+				mkCons(
 					atomPrimitives["cons"],
-					sexpr_cons{atomone,
-						sexpr_cons{atomtwo,Nil},
-					},
-				},
+					mkCons(atomone,
+						mkCons(atomtwo,Nil),
+					),
+				),
 			},
 		},
 		// {
 		// 	"(eq? (car (cons 1 2)) 1)",
 		// 	// Bleh.  I've lost track!!!
 		// 	[]Sexpr{
-		// 		sexpr_cons{
+		// 		mkCons(
 		// 			atomPrimitives[itemEqQ],
-		// 			sexpr_cons{
-		// 				sexpr_cons{ atomPrimitives[itemCar],
-		// 					sexpr_cons{
-		// 						sexpr_cons{atomone, atomtwo},
+		// 			mkCons(
+		// 				mkCons( atomPrimitives[itemCar],
+		// 					mkCons(
+		// 						mkCons(atomone, atomtwo},
 		// 						Nil,
-		// 					},
-		// 				},
-		// 				sexpr_cons{ atomone, Nil },
-		// 			},
-		// 		},
+		// 					),
+		// 				),
+		// 				mkCons( atomone, Nil ),
+		// 			),
+		// 		),
 		// 	},
 		// },
 	}
