@@ -3,6 +3,7 @@ package sexpr
 import (
 	"fmt"
 	"strconv"
+	"log"
 )
 
 func Evaluate(s Sexpr) Sexpr {
@@ -37,6 +38,9 @@ var primitiveStrings = []string {
 	"cdr",
 	"eq?",
 	"quote",
+	"null?",
+	"atom?",
+	"define",
 }
 
 // An evaluator is a decorated S-expression (probably an Atom) that
@@ -59,6 +63,10 @@ func init() {
 	evaluators[atomPrimitives["eq?"]]  = evalEqQ
 	evaluators[atomPrimitives["+"]]    = evalPlus
 	evaluators[atomPrimitives["quote"]] = evalQuote
+
+	evaluators[atomPrimitives["null?"]] = evalNullQ
+	evaluators[atomPrimitives["atom?"]] = evalAtomQ
+	evaluators[atomPrimitives["define"]] = evalDefine
 }
 
 /////
@@ -167,4 +175,59 @@ func evalQuote(lst Sexpr) Sexpr {
 	// else
 	// return the first argument, unevaluated
 	return args[0]
+}
+
+func evalNullQ(lst Sexpr) Sexpr {
+	args, err := unconsify(lst)
+	if err != nil {
+		return sexpr_error{"null?", fmt.Sprintf("Strange arguments %q", lst)}
+	} else if len(args) != 1 {
+		return sexpr_error{"null?", fmt.Sprintf("Expected 1 argument, got %d", len(args))}
+	}
+	// else
+	if Evaluate(args[0]) == Nil {
+		return True
+	} else {
+		return False
+	}
+}
+
+func evalAtomQ(lst Sexpr) Sexpr {
+	args, err := unconsify(lst)
+	if err != nil {
+		return sexpr_error{"atom?", fmt.Sprintf("Strange arguments %q", lst)}
+	} else if len(args) != 1 {
+		return sexpr_error{"atom?", fmt.Sprintf("Expected 1 argument, got %d", len(args))}
+	}
+	// else
+	val := Evaluate(args[0])
+	switch val := val.(type) {
+	case sexpr_atom:
+		if val != Nil {
+			return True
+		} else {
+			return False
+		}
+	default:         return False
+	}
+}
+
+func evalDefine(lst Sexpr) Sexpr {
+	args, err := unconsify(lst)
+	if err != nil {
+		return sexpr_error{"define", fmt.Sprintf("Strange arguments %q", lst)}
+	} else if len(args) != 2 {
+		return sexpr_error{"define?", fmt.Sprintf("Expected 2 arguments, got %d", len(args))}
+	}
+	// else
+	key := args[0]
+	switch key := key.(type) {
+	case sexpr_atom:
+		// TODO:  Check further; let's not redefine Nil, for instance
+		val := Evaluate(args[1])
+		log.Printf("DEFINE %q <-- %s", key, val)
+		return Nil
+	default:
+		panic(fmt.Sprintf("Cannot define a non-symbol: %q", key))
+	}
 }
