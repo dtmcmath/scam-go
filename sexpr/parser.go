@@ -13,6 +13,11 @@ import (
 type sexpr_parse_artifact struct{
 	name string
 }
+func (a sexpr_parse_artifact) Sprint() (string, error) {
+	msg := fmt.Sprintf("Never try to print this artifact: %q", a.name)
+	return "", errors.New(msg)
+}
+
 var (
 	emptyStackError error = errors.New("Pop from an empty stack")
 	markerLPAREN sexpr_parse_artifact = sexpr_parse_artifact{"LPAREN"}

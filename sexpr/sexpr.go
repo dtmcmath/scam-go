@@ -169,14 +169,7 @@ func (c sexpr_cons) Sprint() (string, error) {
 
 	for ptr := c ; ; {
 		switch car := ptr.car.(type) {
-		case sexpr_atom:
-			if scar, err := car.Sprint() ; err != nil {
-				msg := fmt.Sprintf("Unprintable CAR %q: %s", car, err.Error())
-				return "", errors.New(msg)
-			} else {
-				str += scar
-			}
-		case sexpr_cons:
+		case sexpr_atom, sexpr_cons:
 			if scar, err := car.Sprint() ; err != nil {
 				msg := fmt.Sprintf("Unprintable CAR %q: %s", car, err.Error())
 				return "", errors.New(msg)
@@ -224,20 +217,17 @@ type sexpr_error struct {
 	context string
 	message string
 }
+func (e sexpr_error) Sprint() (string, error) {
+	return fmt.Sprintf("(ERROR %s %q)", e.context, e.message), nil
+}
 
 // A Sexpr includes sexpr_atom and sexpr_cons.  It's a discriminated union
-type Sexpr interface{}
+type Sexpr interface{
+	Sprint() (string, error)
+}
 
 func Sprint(s Sexpr) (string, error) {
-	switch s := s.(type) {
-	case sexpr_atom:
-		return s.Sprint()
-	case sexpr_cons:
-		return s.Sprint()
-	default:
-		msg := fmt.Sprintf("Unprintable S-expression %T: %s", s, s)
-		return "", errors.New(msg)
-	}
+	return s.Sprint()
 }
 
 // Fprint writes a pretty version of the S-expression to the named
