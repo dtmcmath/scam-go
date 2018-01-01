@@ -21,18 +21,6 @@ Since SCAM isn't really a calculator, this is a low-priority issue.
 
 ** Lex errors are very cryptic
 
-** Quote doesn't match real examples
-
-One cannot write
-
-#+BEGIN_SRC scheme
-(car (cdr '((b) (x y) ((c)))))
-#+END_SRC
-
-Oops.  We actually got a lot of that stuff backwards, even in the
-"official" examples in pages like
-[[./sexpr/parser_test.go][parser_test examples]].  Oops².
-
 ** =scam_server= does not echo back to client
 
 It shouldn't be hard (should it?) to have the server actually write
