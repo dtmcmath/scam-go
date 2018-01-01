@@ -33,14 +33,12 @@ Oops.  We actually got a lot of that stuff backwards, even in the
 "official" examples in pages like
 [[./sexpr/parser_test.go][parser_test examples]].  Oops².
 
+** =scam_server= does not echo back to client
+
+It shouldn't be hard (should it?) to have the server actually write
+back.  As of now, it just logs messages itself.
+
 * Desiderata
-
-** TODO A server
-
-It should be straightforward to develop a server similar to
-[[https://github.com/adonovan/gopl.io/blob/master/ch8/reverb2/reverb.go][the
-"reverb" example from /The Go Programming Language/]].  Something that
-would reflect back the evaluated expression.
 
 ** Symbol tables
 

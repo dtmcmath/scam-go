@@ -52,9 +52,9 @@ To use `scam` as a REPL, use
 
 and type.
 
-Coming soon:
+Or
 
-    go run scam_server.go -port 8000
+    go run scam_server.go -port 8000 &
     echo "(eq? (car (cons 1 2) 2))" | nc localhost 8000
 
 ## For further reading
