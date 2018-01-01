@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	// "runtime/debug"
 	"strconv"
 	//"strings"
@@ -40,14 +39,6 @@ func (a sexpr_atom) Sprint() (string, error) {
 	default:
 		msg := fmt.Sprintf("Unprintable atom of type %q: %s", a.typ, a)
 		return "", errors.New(msg)
-	}
-}
-
-func (a sexpr_atom) Fprint(out io.Writer) (n int, err error) {
-	if str, err := a.Sprint() ; err != nil {
-		return 0, err
-	} else {
-		return fmt.Fprint(out, str)
 	}
 }
 
@@ -221,15 +212,6 @@ func (c sexpr_cons) Sprint() (string, error) {
 	return str, nil
 }
 
-func (c sexpr_cons) Fprint(out io.Writer) (int, error) {
-	if str, err := c.Sprint() ; err != nil {
-		return 0, err
-	} else {
-		log.Printf("FPRINTing cons %q: %q", c, str)
-		return fmt.Fprint(out, str)
-	}
-}
-
 func (c sexpr_cons) String() string {
 	// TODO:  This will barf if c itself has a loop
 	return fmt.Sprintf("Cons(%s, %s)", c.car, c.cdr)
@@ -245,18 +227,26 @@ type sexpr_error struct {
 // A Sexpr includes sexpr_atom and sexpr_cons.  It's a discriminated union
 type Sexpr interface{}
 
+func Sprint(s Sexpr) (string, error) {
+	switch s := s.(type) {
+	case sexpr_atom:
+		return s.Sprint()
+	case sexpr_cons:
+		return s.Sprint()
+	default:
+		msg := fmt.Sprintf("Unprintable S-expression %T: %s", s, s)
+		return "", errors.New(msg)
+	}
+}
+
 // Fprint writes a pretty version of the S-expression to the named
 // writer.  It returns the number of bytes written and any write-error
 // encountered.
 func Fprint(out io.Writer, s Sexpr) (n int, err error) {
-	switch s := s.(type) {
-	case sexpr_atom:
-		return s.Fprint(out)
-	case sexpr_cons:
-		return s.Fprint(out)
-	default:
-		msg := fmt.Sprintf("Unprintable S-expression %T: %s", s, s)
-		return 0, errors.New(msg)
+	if str, err := Sprint(s) ; err != nil {
+		return 0, err
+	} else {
+		return fmt.Fprint(out, str)
 	}
 }
 
