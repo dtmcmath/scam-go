@@ -1,25 +1,42 @@
 package main
 
 import (
-	"github.mheducation.com/dave-mcmath/scam/sexpr"
-	"github.mheducation.com/dave-mcmath/scam/scamutil"
+	"github.mheducation.com/dave-mcmath/scam/repl"
 
 	"flag"
 	"fmt"
-	"log"
+	"io"
 	"os"
-	"bufio"
+	"errors"
 )
 
 var infilename = flag.String("in", "-", "input file ('-' for stdin)")
 
+type teeReader struct{
+	in  io.Reader
+	tee io.Writer
+}
+func (t teeReader) Read(p []byte) (n int, err error) {
+	n, err = t.in.Read(p)
+	if err == nil {
+		// Success, so tee out the bytes
+		_, err := t.tee.Write(p)
+		if err != nil {
+			// There was an error writing.
+			// /me sighs
+			err = errors.New("Tee-Error: " + err.Error())
+			return 0, err
+		}
+	}
+	return n, err
+}
+
+
 func main() {
 	flag.Parse()
 
-	chin := make(chan rune)
-	_, sexprs := sexpr.Parse("repl", chin)
-
-	var infile *os.File
+	//	var infile *os.Reader
+	var infile io.Reader
 	switch *infilename {
 	case "-":
 		infile = os.Stdin
@@ -32,19 +49,17 @@ func main() {
 			fmt.Fprintln(os.Stderr, msg, err)
 			os.Exit(1)
 		}
-		infile = iii
-	}
-
-	go func(in *bufio.Scanner, ch chan<- rune) {
-		err := scamutil.FillRuneChannelFromScanner(in, ch)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "reading input:", err)
+		infile = teeReader{
+			in: iii,
+			tee: os.Stdout,
 		}
-	}(bufio.NewScanner(infile), chin)
-
-	for sx := range sexprs {
-		log.Println("Evaluating", sx)
-		val := sexpr.Evaluate(sx)
-		fmt.Println(val)
 	}
+
+	r := repl.New("scam", infile, os.Stdout, os.Stderr)
+	r.SetPreface(`SCAM Version 0.1
+Please be gentle
+`)
+	r.SetPrompt("> ")
+
+	r.Run()
 }

@@ -1,14 +1,13 @@
 package main
 
 import (
-	"github.mheducation.com/dave-mcmath/scam/sexpr"
-	"github.mheducation.com/dave-mcmath/scam/scamutil"
+	"github.mheducation.com/dave-mcmath/scam/repl"
 
 	"flag"
 	"log"
 	"net"
 	"fmt"
-	"bufio"
+	"os"
 )
 
 var port = flag.Int("port", 8000, "where to listen")
@@ -31,22 +30,15 @@ func main() {
 }
 
 func handleConn(conn net.Conn) {
-	ch := make(chan rune)
+	log.Printf("Accepted a connection from %s", conn.RemoteAddr())
 
-	_, sexprs := sexpr.Parse("repl", ch)
-
-	go func(sc *bufio.Scanner) {
-		err := scamutil.FillRuneChannelFromScanner(sc, ch)
-		if err != nil {
-			log.Print(err)
-		}
-	}(bufio.NewScanner(conn))
-
-	for sx := range sexprs {
-		log.Println("Evaluating", sx)
-		val := sexpr.Evaluate(sx)
-		// TODO:  Actually send it back?  Look at gopl.io/ch8/chat.go
-		fmt.Println(val)
-	}
+	r := repl.New(
+		conn.RemoteAddr().String(),
+		conn,
+		conn,
+		os.Stderr,
+	)
+	r.SetPrompt(fmt.Sprintf("write(%d)> ", *port))
+	r.Run()
 }
 	

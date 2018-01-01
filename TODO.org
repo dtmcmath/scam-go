@@ -21,11 +21,6 @@ Since SCAM isn't really a calculator, this is a low-priority issue.
 
 ** Lex errors are very cryptic
 
-** =scam_server= does not echo back to client
-
-It shouldn't be hard (should it?) to have the server actually write
-back.  As of now, it just logs messages itself.
-
 * Desiderata
 
 ** Symbol tables
