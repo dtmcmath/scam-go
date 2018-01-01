@@ -20,7 +20,7 @@ in action.
 
 Browsing around, I found "Lexical Scanning in Go" by Rob Pike
 ([video](https://youtu.be/HxaD_trXwRE),
-[slides](https://talks.golang.org/2011/lex.slide) where he says "we
+[slides](https://talks.golang.org/2011/lex.slide)) where he says "we
 should write our own [lexer], 'cause it's easy, right?"  Huh.
 
 Back when I was an undergraduate at Rice University, the first CS
