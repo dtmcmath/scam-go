@@ -29,7 +29,7 @@ func (a sexpr_atom) String() string {
 		case True: return "#t"
 		case False: return "#f"
 		default:
-			panic(fmt.Sprintf("The false boolean atom %+v", a))
+			panic(fmt.Sprintf("The faux boolean atom %+v", a))
 		}
 	case atomNumber:
 		// Try to keep things integer, if possible
