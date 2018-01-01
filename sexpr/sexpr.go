@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"errors"
+	"strconv"
 )
 
 type atomType int
@@ -30,7 +31,21 @@ func (a sexpr_atom) String() string {
 		default:
 			panic(fmt.Sprintf("The false boolean atom %+v", a))
 		}
-	case atomNumber: return fmt.Sprintf("N(%s)", a.name)
+	case atomNumber:
+		// Try to keep things integer, if possible
+		if i, err := strconv.ParseInt(a.name, 10, 64) ; err == nil {
+			return fmt.Sprintf("%d", i)
+		} else {
+		}
+		if f, err := strconv.ParseFloat(a.name, 64) ; err == nil {
+			return fmt.Sprintf("%f", f)
+		}
+		// else
+		msg := fmt.Sprintf(
+			"Unprintable non-number %q posing as a number",
+			a.name,
+		)
+		panic(msg)
 	case atomSymbol: return fmt.Sprintf("Sym(%s)", a.name)
 	default:
 		panic(fmt.Sprintf("No way: atom %v", a))

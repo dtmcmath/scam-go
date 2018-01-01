@@ -107,7 +107,7 @@ func ExampleParse_list() {
 		fmt.Println(sx)
 	}
 	// Output:
-	// Cons(Sym(+), Cons(N(1), Cons(N(2), Nil)))
+	// Cons(Sym(+), Cons(1, Cons(2, Nil)))
 }
 
 func ExampleParse_multiple() {
