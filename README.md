@@ -23,14 +23,13 @@ Browsing around, I found "Lexical Scanning in Go" by Rob Pike
 [slides](https://talks.golang.org/2011/lex.slide)) where he says "we
 should write our own [lexer], 'cause it's easy, right?"  Huh.
 
-Back when I was an undergraduate at Rice University, the first CS
-class was in Scheme and the second was in C++.  One of the big C++
-projects was to write a Scheme(-like) interpreter.  I did a terrible
-job.  I should probably apologize to dougm@rice.edu for my particular
-blend of a know-it-all overconfidence and a deep ignorance of how to
-manage code.  Anyway, I remember having bugs in my Tokenizer that
-plagued me all semester, so the idea that a lexer could be easy was
-appealing.
+Back when I was an undergraduate, the first CS class was in Scheme and
+the second was in C++.  One of the big C++ projects was to write a
+Scheme(-like) interpreter.  I did a terrible job.  I should probably
+apologize to the professor, dougm@rice.edu for my particular blend of
+a know-it-all overconfidence and a deep ignorance of how to manage
+code.  Anyway, I remember having bugs in my Tokenizer that plagued me
+all semester, so the idea that a lexer could be easy was appealing.
 
 I've used `flex` to generate C code, but it turned out to be a mess.
 So I was intrigued by the idea that a lexer could be "easy".  It
