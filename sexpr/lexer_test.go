@@ -3,22 +3,8 @@ package sexpr
 import (
 	"fmt"
 	"testing"
+	"reflect"
 )
-
-// func deepEqual(a []interface{}, b []interface{}) bool {
-func deepEqual(a []item, b []item) bool {
-	for len(a) == len(b) {
-		if len(a) == 0 {
-			return true
-		} else if a[0] != b[0] {
-			return false
-		}
-		// else
-		a = a[1:]
-		b = b[1:]
-	}
-	return false
-}
 
 func TestSimpleLexer(t *testing.T) {
 	var tests = []struct {
@@ -59,14 +45,45 @@ func TestSimpleLexer(t *testing.T) {
 		for it := range ch {
 			got = append(got, it)
 		}
-		if !deepEqual(got, test.want) {
+		if !reflect.DeepEqual(got, test.want) {
 			t.Errorf("Lexed '%s' got '%v', wanted '%v'",
 				test.input, got, test.want,
 			)
 		}
 	}
 }
-			
+
+func TestLexComments (t *testing.T) {
+	var tests = []struct {
+		input string
+		want []itemType
+	}{
+		{ "", []itemType{ itemEOF } },
+		{
+			`; Hello
+World`,
+			[]itemType{ itemComment, itemSymbol, itemEOF },
+		},
+		{
+			"1 ; A number",
+			[]itemType{ itemNumber, itemComment, itemEOF },
+		},
+	}
+
+	for _, test := range tests {
+		_, ch := lex("test", mkRuneChannel(test.input))
+		var got []itemType
+		for it := range ch {
+			got = append(got, it.typ)
+		}
+		if !reflect.DeepEqual(got, test.want) {
+			t.Errorf("Lexed %q got %v, wanted %v",
+				test.input, got, test.want,
+			)
+		}
+	}
+}
+
 func ExampleLexer() {
 	sexpr := " 'abc (3.14159)"
 	_, ch := lex("test", mkRuneChannel(sexpr))
