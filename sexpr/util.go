@@ -25,8 +25,8 @@ func unconsify(list Sexpr) ([]Sexpr, error) {
 		switch l := lst.(type) {
 		case sexpr_atom:
 			errmsg := fmt.Sprintf(
-				"Unexpected atom in position %d of %s",
-				idx, list,
+				"Unexpected atom %q in position %d of %s",
+				l, 1+idx, list,
 			)
 			return nil, errors.New(errmsg)
 		case sexpr_cons:

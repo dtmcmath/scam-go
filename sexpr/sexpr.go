@@ -2,10 +2,14 @@
 package sexpr
 
 import (
-	"fmt"
-	//"log"
 	"errors"
+	"fmt"
+	"io"
+	"log"
+	// "runtime/debug"
 	"strconv"
+	//"strings"
+	"os"
 )
 
 type atomType int
@@ -19,6 +23,32 @@ const (
 type sexpr_atom struct {
 	typ atomType
 	name string
+}
+
+func (a sexpr_atom) Sprint() (string, error) {
+	switch a.typ {
+	case atomNil:   return "()", nil
+	case atomBoolean:
+		switch a {
+		case True:  return "#t", nil
+		case False: return "#f", nil
+		default:
+			panic(fmt.Sprintf("The faux boolean atom %+v", a))
+		}
+	case atomNumber, atomSymbol:
+		return a.name, nil
+	default:
+		msg := fmt.Sprintf("Unprintable atom of type %q: %s", a.typ, a)
+		return "", errors.New(msg)
+	}
+}
+
+func (a sexpr_atom) Fprint(out io.Writer) (n int, err error) {
+	if str, err := a.Sprint() ; err != nil {
+		return 0, err
+	} else {
+		return fmt.Fprint(out, str)
+	}
 }
 
 func (a sexpr_atom) String() string {
@@ -143,6 +173,63 @@ func getCddr(s Sexpr) (Sexpr, error) {
 	}
 }
 
+func (c sexpr_cons) Sprint() (string, error) {
+	str := "("
+	switch car := c.car.(type) {
+	case sexpr_atom:
+		if scar, err := car.Sprint() ; err != nil {
+			msg := fmt.Sprintf("Unprintable CAR %q: %s", car, err.Error())
+			return "", errors.New(msg)
+		} else {
+			str += scar
+		}
+	case sexpr_cons:
+		if scar, err := car.Sprint() ; err != nil {
+			msg := fmt.Sprintf("Unprintable CAR %q: %s", car, err.Error())
+			return "", errors.New(msg)
+		} else {
+			str += scar
+		}
+	default:
+		msg := fmt.Sprintf("Unprintable CAR %q", car)
+		return "", errors.New(msg)
+	}
+
+	if c.cdr == Nil {
+		str += ")"
+	} else {
+		switch cdr := c.cdr.(type) {
+		case sexpr_atom:
+			if scdr, err := cdr.Sprint() ; err != nil {
+				msg := fmt.Sprintf("Unprintable CDR %q: %s", cdr, err.Error())
+				return "", errors.New(msg)
+			} else {
+				str += fmt.Sprintf(" . %s)", scdr)
+			}
+		case sexpr_cons:
+			if scdr, err := cdr.Sprint() ; err != nil {
+				msg := fmt.Sprintf("Unprintable CDR %q: %s", cdr, err.Error())
+				return "", errors.New(msg)
+			} else {
+				str += fmt.Sprintf(" %s)", scdr)
+			}
+		default:
+			msg := fmt.Sprintf("Unprintable CDR %q", cdr)
+			return "", errors.New(msg)
+		}
+	}
+	return str, nil
+}
+
+func (c sexpr_cons) Fprint(out io.Writer) (int, error) {
+	if str, err := c.Sprint() ; err != nil {
+		return 0, err
+	} else {
+		log.Printf("FPRINTing cons %q: %q", c, str)
+		return fmt.Fprint(out, str)
+	}
+}
+
 func (c sexpr_cons) String() string {
 	// TODO:  This will barf if c itself has a loop
 	return fmt.Sprintf("Cons(%s, %s)", c.car, c.cdr)
@@ -157,3 +244,22 @@ type sexpr_error struct {
 
 // A Sexpr includes sexpr_atom and sexpr_cons.  It's a discriminated union
 type Sexpr interface{}
+
+// Fprint writes a pretty version of the S-expression to the named
+// writer.  It returns the number of bytes written and any write-error
+// encountered.
+func Fprint(out io.Writer, s Sexpr) (n int, err error) {
+	switch s := s.(type) {
+	case sexpr_atom:
+		return s.Fprint(out)
+	case sexpr_cons:
+		return s.Fprint(out)
+	default:
+		msg := fmt.Sprintf("Unprintable S-expression %T: %s", s, s)
+		return 0, errors.New(msg)
+	}
+}
+
+func Print(s Sexpr) (n int, err error) {
+	return Fprint(os.Stdout, s)
+}
