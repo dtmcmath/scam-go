@@ -12,7 +12,6 @@ const (
 	atomNil atomType = iota
 	atomNumber
 	atomSymbol
-	atomQuotedSymbol
 	atomBoolean
 )
 
@@ -33,7 +32,6 @@ func (a sexpr_atom) String() string {
 		}
 	case atomNumber: return fmt.Sprintf("N(%s)", a.name)
 	case atomSymbol: return fmt.Sprintf("Sym(%s)", a.name)
-	case atomQuotedSymbol: return fmt.Sprintf("Quote(%s)", a.name)
 	default:
 		panic(fmt.Sprintf("No way: atom %v", a))
 	}
@@ -45,8 +43,6 @@ func (a sexpr_atom) evaluate() Sexpr {
 	case atomSymbol:
 		log.Printf("Pretend we looked up the value for %s", a)
 		return a
-	case atomQuotedSymbol:
-		return mkAtomSymbol(a.name)
 	default:
 		return a
 	}
@@ -64,7 +60,6 @@ var (
 
 var atomNumberPool = make(map[string]sexpr_atom)
 var atomSymbolPool = make(map[string]sexpr_atom)
-var atomQuotedPool = make(map[string]sexpr_atom)
 
 func atomFactory(t atomType, pool map[string]sexpr_atom) func(string) sexpr_atom {
 	return func (s string) sexpr_atom {
@@ -78,7 +73,6 @@ func atomFactory(t atomType, pool map[string]sexpr_atom) func(string) sexpr_atom
 }
 
 var mkAtomSymbol = atomFactory(atomSymbol, atomSymbolPool)
-var mkAtomQuoted = atomFactory(atomQuotedSymbol, atomQuotedPool)
 var mkAtomNumber = atomFactory(atomNumber, atomNumberPool)
 
 var currentConsNumber int64
@@ -92,6 +86,14 @@ func mkCons(car Sexpr, cdr Sexpr) sexpr_cons {
 	defer func() {currentConsNumber += 1}()
 	return sexpr_cons{car, cdr, currentConsNumber}
 }
+// mkList is a helper method to replace
+//
+//   mkCons(a, mkCons(b, mkCons(c, Nil)))
+//
+// with just
+//
+//   mkList(a, b, c)
+func mkList(s ...Sexpr) Sexpr { return consify(s) }
 
 func getCar(s Sexpr) (Sexpr, error) {
 	switch s := s.(type) {

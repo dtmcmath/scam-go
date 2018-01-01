@@ -91,7 +91,8 @@ func ExampleLexer() {
 		fmt.Println(tok)
 	}
 	// Output:
-	// QSYMBOL(abc)
+	// QUOTE
+	// SYMBOL(abc)
 	// LPAREN
 	// NUMBER(3.14159)
 	// RPAREN
@@ -119,7 +120,11 @@ func ExampleBadLexing () {
 	// Output:
 	// LPAREN
 	// SYMBOL(add)
-	// ERROR(quoted symbols must start with a letter, not "'0")
+	// QUOTE
+	// NUMBER(0)
+	// NUMBER(1)
+	// RPAREN
+	// EOF
 }
 
 func ExampleBadLexing2 () {
