@@ -23,6 +23,7 @@ const (
 	itemEOF
 	itemLparen                // (
 	itemRparen                // )
+	itemComment               // ; ... \n
 	itemDot                   // .
 	itemNumber                // a numeric thing
 	itemQuotedSymbol          // 'abc
@@ -66,6 +67,13 @@ type lexer struct {
 }
 
 type stateFn func(*lexer) stateFn
+
+type runeTester func(rune) bool
+func mkLookupFunc (s string) runeTester {
+	return func(r rune) bool {
+		return strings.IndexRune(s, r) >= 0
+	}
+}
 
 // run lexes the input by executing state functions
 // until the state is nil.
@@ -155,19 +163,20 @@ func (l *lexer) peek() (r rune) {
     return r
 }
 
+func matchOneOf(r rune, preds ...runeTester) bool {
+	for _, pred := range preds {
+		if pred(r) {
+			return true
+		}
+	}
+	return false
+}
 // accept consumes the next rune
 // if it's from the valid set.
 func (l *lexer) accept(valid string) bool {
-	return l.acceptPredicate(func (r rune) bool {
-		return strings.IndexRune(valid, r) >= 0
-	})
-    // if strings.IndexRune(valid, l.next()) >= 0 {
-    //     return true
-    // }
-    // l.backup()
-    // return false
+	return l.acceptPredicate(mkLookupFunc(valid))
 }
-func (l *lexer) acceptPredicate(preds ...func(rune) bool) bool {
+func (l *lexer) acceptPredicate(preds ...runeTester) bool {
 	r := l.next()
 	for _, pred := range preds {
 		if pred(r) {
@@ -180,13 +189,27 @@ func (l *lexer) acceptPredicate(preds ...func(rune) bool) bool {
 
 // acceptRun consumes a run of runes from the valid set.
 func (l *lexer) acceptRun(valid string) {
-	l.acceptRunPredicate(func (r rune) bool {
-		return strings.IndexRune(valid, r) >= 0
-    })
+	l.acceptRunPredicate(mkLookupFunc(valid))
 }
-func (l *lexer) acceptRunPredicate(preds ...func(rune) bool) {
+func (l *lexer) acceptRunPredicate(preds ...runeTester) {
 	for l.acceptPredicate(preds...) {
 	}
+}
+
+// acceptUntilPredicate consumes a run of runes until a rune matches
+// one of the predicate conditions.  Once there is a match, we back up
+// one step (un-ingest the rune) and return.
+//
+// EOF matches automatically/implicitly.
+func (l *lexer) acceptUntilPredicate(preds ...runeTester) {
+	for {
+		r := l.next()
+		if m := r == eof || matchOneOf(r, preds...) ; m {
+			l.backup()
+			return
+		}
+	}
+	panic("Predicate-test found the second dimension")
 }
 
 // error returns an error token and terminates the scan
@@ -259,6 +282,8 @@ func lexText(l *lexer) stateFn {
 			l.emit(itemLparen)
 		case r == ')':
 			l.emit(itemRparen)
+		case r == ';':
+			return lexComment
 		case r == '+' || r == '-':
 			peek := l.peek()
 			if unicode.IsSpace(peek) || peek == eof || peek == ')' {
@@ -354,5 +379,11 @@ func lexBoolean(l *lexer) stateFn {
 	}
 	// else
 	l.emit(itemBoolean)
+	return lexText
+}
+
+func lexComment(l *lexer) stateFn {
+	l.acceptUntilPredicate(mkLookupFunc("\n"))
+	l.emit(itemComment)
 	return lexText
 }

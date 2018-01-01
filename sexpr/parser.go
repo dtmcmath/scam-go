@@ -158,7 +158,7 @@ func (p *parser) run() {
 		case itemQuotationMark, itemDot:
 			p.unsupportedf("We aren't ready for '%s' yet", tok)
 			return
-		case itemWhitespace:
+		case itemWhitespace, itemComment:
 			continue
 		default:
 			p.paniqf("Unexpected token: %v", tok)
