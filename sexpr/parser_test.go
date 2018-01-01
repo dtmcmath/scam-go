@@ -101,3 +101,25 @@ func ExampleParse_multiple() {
 	// #f
 	// Cons(Sym(+), Nil)
 }
+
+func ExampleParse_errors() {
+	bad_strings := []string{
+		"(",
+		"())",
+		"(1",
+	}
+	for _, s := range bad_strings {
+		_, ch := Parse("test", mkRuneChannel(s))
+		for sx := range ch {
+			fmt.Println(sx)
+		}
+	}
+	// Output:
+	// PARSE ERROR: Unexpected EOF
+	// «TODO:  Better parse-error context»
+	// Nil
+	// PARSE ERROR: popUntil({LPAREN}) from a stack with no {"LPAREN"}
+	// «TODO:  Better parse-error context»
+	// PARSE ERROR: Unexpected EOF
+	// «TODO:  Better parse-error context»
+}
