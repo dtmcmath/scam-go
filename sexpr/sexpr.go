@@ -166,44 +166,45 @@ func getCddr(s Sexpr) (Sexpr, error) {
 
 func (c sexpr_cons) Sprint() (string, error) {
 	str := "("
-	switch car := c.car.(type) {
-	case sexpr_atom:
-		if scar, err := car.Sprint() ; err != nil {
-			msg := fmt.Sprintf("Unprintable CAR %q: %s", car, err.Error())
-			return "", errors.New(msg)
-		} else {
-			str += scar
-		}
-	case sexpr_cons:
-		if scar, err := car.Sprint() ; err != nil {
-			msg := fmt.Sprintf("Unprintable CAR %q: %s", car, err.Error())
-			return "", errors.New(msg)
-		} else {
-			str += scar
-		}
-	default:
-		msg := fmt.Sprintf("Unprintable CAR %q", car)
-		return "", errors.New(msg)
-	}
 
-	if c.cdr == Nil {
-		str += ")"
-	} else {
-		switch cdr := c.cdr.(type) {
+	for ptr := c ; ; {
+		switch car := ptr.car.(type) {
 		case sexpr_atom:
-			if scdr, err := cdr.Sprint() ; err != nil {
-				msg := fmt.Sprintf("Unprintable CDR %q: %s", cdr, err.Error())
+			if scar, err := car.Sprint() ; err != nil {
+				msg := fmt.Sprintf("Unprintable CAR %q: %s", car, err.Error())
 				return "", errors.New(msg)
 			} else {
-				str += fmt.Sprintf(" . %s)", scdr)
+				str += scar
 			}
 		case sexpr_cons:
-			if scdr, err := cdr.Sprint() ; err != nil {
-				msg := fmt.Sprintf("Unprintable CDR %q: %s", cdr, err.Error())
+			if scar, err := car.Sprint() ; err != nil {
+				msg := fmt.Sprintf("Unprintable CAR %q: %s", car, err.Error())
 				return "", errors.New(msg)
 			} else {
-				str += fmt.Sprintf(" %s)", scdr)
+				str += scar
 			}
+		default:
+			msg := fmt.Sprintf("Unprintable CAR %q", car)
+			return "", errors.New(msg)
+		}
+
+		switch cdr := ptr.cdr.(type) {
+		case sexpr_atom:
+			if cdr == Nil {
+				str += ")"
+			} else {
+				if scdr, err := cdr.Sprint() ; err != nil {
+					msg := fmt.Sprintf("Unprintable CDR %q: %s", cdr, err.Error())
+					return "", errors.New(msg)
+				} else {
+					str += fmt.Sprintf(" . %s)", scdr)
+				}
+			}
+			return str, nil
+		case sexpr_cons:
+			str += " "
+			ptr = cdr
+			// and loop around agian
 		default:
 			msg := fmt.Sprintf("Unprintable CDR %q", cdr)
 			return "", errors.New(msg)
