@@ -3,7 +3,7 @@ package sexpr
 
 import (
 	"fmt"
-	"log"
+	//"log"
 	"errors"
 )
 
@@ -43,7 +43,7 @@ func (a sexpr_atom) evaluate() Sexpr {
 	// TODO:  Actual lookup in the symbol table
 	switch a.typ {
 	case atomSymbol:
-		log.Printf("Pretend we looked up the value for %s", a)
+		// log.Printf("Pretend we looked up the value for %s", a)
 		return a
 	case atomQuotedSymbol:
 		return mkAtomSymbol(a.name)
