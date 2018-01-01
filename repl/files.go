@@ -1,4 +1,4 @@
-package scamutil
+package repl
 
 import (
 	"bufio"
@@ -9,7 +9,7 @@ import (
 // pushes all the runes into the channel (ch).  If there is an error
 // reading the file, we return that value.  The channel is always
 // closed when the method returns.
-func FillRuneChannelFromScanner(scanner *bufio.Scanner, ch chan<- rune) error {
+func fillRuneChannelFromScanner(scanner *bufio.Scanner, ch chan<- rune) error {
 	defer close(ch)
 
 	scanner.Split(bufio.ScanRunes)

@@ -1,7 +1,6 @@
 package repl
 
 import (
-	"github.mheducation.com/dave-mcmath/scam/scamutil"
 	"github.mheducation.com/dave-mcmath/scam/sexpr"
 
 	"bufio"
@@ -31,7 +30,7 @@ func (r *repl) Run() {
 	ch := make(chan rune)
 
 	go func(in *bufio.Scanner, ch chan<- rune) {
-		err := scamutil.FillRuneChannelFromScanner(in, ch)
+		err := fillRuneChannelFromScanner(in, ch)
 		if err != nil {
 			fmt.Fprintln(r.err, "reading input:", err)
 		}
