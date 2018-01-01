@@ -26,7 +26,7 @@ const (
 	itemComment               // ; ... \n
 	itemDot                   // .
 	itemNumber                // a numeric thing
-	itemQuotedSymbol          // 'abc
+	itemSingleQuote           // '
 	itemSymbol                // abc
 	itemBoolean               // #t or #f
 	itemWhitespace            // ... maybe not needed
@@ -40,14 +40,14 @@ func (i item) String() string {
 	case itemRparen: return "RPAREN"
 	case itemDot: return "DOT"
 	case itemNumber: return fmt.Sprintf("NUMBER(%s)", i.val)
-	case itemQuotedSymbol: return fmt.Sprintf("QSYMBOL(%s)", i.val)
+	case itemSingleQuote: return "QUOTE"
 	case itemSymbol: return fmt.Sprintf("SYMBOL(%s)", i.val)
 	case itemBoolean: return fmt.Sprintf("BOOL(%s)", i.val)
 	case itemWhitespace: return "WHITESPACE"
-	case itemQuotationMark: return "QUOTE"
+	case itemQuotationMark: return "DOUBLEQUOTE"
 	case itemError: return fmt.Sprintf("ERROR(%s)", i.val)
 	default:
-		panic(fmt.Sprintf("No way:  token {%v, $v}", i.typ, i.val))
+		panic(fmt.Sprintf("Unrecognized token in 'String': {%v, $v}", i.typ, i.val))
 	}
 }
 
@@ -263,6 +263,39 @@ func lex(name string, src <-chan rune) (*lexer, chan item) {
 // }
 
 ////
+// Helpers that "define" the language
+////
+var (
+	isPartOfASymbol runeTester
+	looksLikeSymbolTerminator runeTester
+	looksLikeNumberStart runeTester
+)
+
+func init() {
+	isPartOfASymbol = func() runeTester {
+		// Oversimplified from https://www.scheme.com/tspl4/grammar.html#grammar:symbols
+		l := mkLookupFunc("*$")
+		return func (r rune) bool {
+			switch {
+			case unicode.IsLetter(r), l(r), '0' <= r && r <= '9' :
+				return true
+			case unicode.IsPunct(r):
+				return !looksLikeSymbolTerminator(r)
+			default:
+				return false
+			}
+		}
+	}()
+	// looksLikeSymbolTerminator matches runes that would end a symbol-run
+	looksLikeSymbolTerminator = func() runeTester {
+		l := mkLookupFunc(");")
+		return func (r rune) bool {
+			return r == eof || unicode.IsSpace(r) || l(r)
+		}
+	}()
+	looksLikeNumberStart = mkLookupFunc("+-")
+}
+////
 // The state functions
 ////
 
@@ -284,26 +317,30 @@ func lexText(l *lexer) stateFn {
 			l.emit(itemRparen)
 		case r == ';':
 			return lexComment
-		case r == '+' || r == '-':
-			peek := l.peek()
-			if unicode.IsSpace(peek) || peek == eof || peek == ')' {
+		case looksLikeNumberStart(r):
+			// Look ahead to see whether it's a number or a symbol
+			switch peek := l.peek() ; {
+			case looksLikeSymbolTerminator(peek):
 				return lexSymbol
-			} else {
-				l.backup()
+			default:
+				l.backup() // We read the number start; put it back
 				return lexNumber
 			}
 		case '0' <= r && r <= '9':
+			// It's going to be a number
 			l.backup()
 			return lexNumber
 		case r == '\'':
-			l.ignore()
-			return lexQuotedSymbol
-		case unicode.IsLetter(r):
-			// No backup; lexSymbol expects to have read one
-			return lexSymbol
+			if l.peek() == '\'' {
+				return l.errorf("invalid quote sequence %q", l.input[l.start:])
+			}
+			l.emit(itemSingleQuote)
 		case r == '#':
 			l.ignore() // Consume
 			return lexBoolean
+		case isPartOfASymbol(r):
+			// No backup; lexSymbol expects to have read one
+			return lexSymbol
 		default:
 			return l.errorf("unrecognized '%c' in '%q'", r, l.input[l.start:l.pos])
 		}
@@ -342,26 +379,10 @@ func lexNumber(l *lexer) stateFn {
     return lexText
 }	
 
-func lexQuotedSymbol(l *lexer) stateFn {
-	if !l.acceptPredicate(unicode.IsLetter) {
-		return l.errorf("quoted symbols must start with a letter, not %q",
-			l.input[-1+l.start:])
-	}
-	l.acceptRunPredicate(unicode.IsLetter, unicode.IsNumber)
-	l.emit(itemQuotedSymbol)
-	return lexText
-}
-
 func lexSymbol(l *lexer) stateFn {
-	// We've already accepted a letter.  Go until the first
-	// non-alphanumeric thing
-	l.acceptRunPredicate(
-		unicode.IsLetter,
-		unicode.IsNumber,
-		func(c rune) bool {
-			return unicode.IsPunct(c) && c != ')'
-		},
-	)
+	// We've already accepted part.  Go until we find something
+	// that doesn't apply.
+	l.acceptRunPredicate(isPartOfASymbol)
 	l.emit(itemSymbol)
 	return lexText
 }
