@@ -92,6 +92,14 @@ func mkCons(car Sexpr, cdr Sexpr) sexpr_cons {
 	defer func() {currentConsNumber += 1}()
 	return sexpr_cons{car, cdr, currentConsNumber}
 }
+// mkList is a helper method to replace
+//
+//   mkCons(a, mkCons(b, mkCons(c, Nil)))
+//
+// with just
+//
+//   mkList(a, b, c)
+func mkList(s ...Sexpr) Sexpr { return consify(s) }
 
 func getCar(s Sexpr) (Sexpr, error) {
 	switch s := s.(type) {

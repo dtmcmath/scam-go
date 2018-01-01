@@ -36,6 +36,7 @@ var primitiveStrings = []string {
 	"car",
 	"cdr",
 	"eq?",
+	"quote",
 }
 
 // An evaluator is a decorated S-expression (probably an Atom) that
@@ -57,6 +58,7 @@ func init() {
 	evaluators[atomPrimitives["cdr"]]  = evalCdr
 	evaluators[atomPrimitives["eq?"]]  = evalEqQ
 	evaluators[atomPrimitives["+"]]    = evalPlus
+	evaluators[atomPrimitives["quote"]] = evalQuote
 }
 
 /////
@@ -153,4 +155,16 @@ func evalPlus(lst Sexpr) Sexpr {
 	}
 
 	return mkAtomNumber(fmt.Sprintf("%d", acc))
+}
+
+func evalQuote(lst Sexpr) Sexpr {
+	args, err := unconsify(lst)
+	if err != nil {
+		return sexpr_error{"quote", fmt.Sprintf("Strange arguments %q", lst)}
+	} else if len(args) != 1 {
+		return sexpr_error{"eq?", fmt.Sprintf("Expected 1 argument, got %d", len(args))}
+	}
+	// else
+	// return the first argument, unevaluated
+	return args[0]
 }
