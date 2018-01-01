@@ -81,10 +81,17 @@ type parser struct {
 	lex *lexer
 	items <-chan item
 	sexprs chan Sexpr
+	// State-type things
 	stack *stackOfSexprs
+	quoteIsActive bool
 }
 
 func (p *parser) emit(s Sexpr) {
+	if p.quoteIsActive {
+		p.quoteIsActive = false
+		p.emit(consify([]Sexpr{mkAtomSymbol("quote"), s}))
+		return
+	}
 	if p.stack.head == nil {
 		// There is no context to roll up; we have a "final" S-expression
 		p.sexprs <- s
@@ -153,12 +160,19 @@ func (p *parser) run() {
 			default:
 				p.paniqf("Illegal boolean token %v", tok)
 			}
-		case itemQuotedSymbol:
-			p.emit(mkAtomQuoted(tok.val))
+		case itemSingleQuote:
+			// 'x is shorthand for (quote x)
+			// '(1 2 3) is shorthand for (quote (1 2 3))
+			// '() is shorthand for (quote ())
+			if p.quoteIsActive {
+				p.paniqf("Unexpected ' inside a quotation")
+				return
+			}
+			p.quoteIsActive = true
 		case itemQuotationMark, itemDot:
 			p.unsupportedf("We aren't ready for '%s' yet", tok)
 			return
-		case itemWhitespace:
+		case itemWhitespace, itemComment:
 			continue
 		default:
 			p.paniqf("Unexpected token: %v", tok)

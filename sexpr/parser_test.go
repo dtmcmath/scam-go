@@ -8,6 +8,9 @@ import (
 func TestSimpleParse(t *testing.T) {
 	atomone := mkAtomNumber("1")
 	atomtwo := mkAtomNumber("2")
+
+	primcons := atomPrimitives["cons"]
+	primquote := atomPrimitives["quote"]
 	var tests = []struct {
 		input string
 		want []Sexpr
@@ -30,11 +33,27 @@ func TestSimpleParse(t *testing.T) {
 			"(cons 1 2)",
 			[]Sexpr{
 				mkCons(
-					atomPrimitives["cons"],
+					primcons,
 					mkCons(atomone,
 						mkCons(atomtwo,Nil),
 					),
 				),
+			},
+		},
+		{
+			"'()",
+			[]Sexpr{
+				mkList(primquote, Nil),
+			},
+		},
+		{
+			"'1",
+			[]Sexpr{ mkList(primquote, atomone) },
+		},
+		{
+			"(cons '1 ())",
+			[]Sexpr{
+				mkList(primcons, mkList(primquote, atomone), Nil),
 			},
 		},
 		// {
@@ -64,7 +83,7 @@ func TestSimpleParse(t *testing.T) {
 			got = append(got, sx)
 		}
 		if !deepEqualSexpr(got, test.want) {
-			t.Errorf("Parsed '%s' got '%v', wanted '%v'",
+			t.Errorf("Parsed %q got '%v', wanted '%v'",
 				test.input, got, test.want,
 			)
 		}
@@ -88,7 +107,7 @@ func ExampleParse_list() {
 		fmt.Println(sx)
 	}
 	// Output:
-	// Cons(Sym(+), Cons(N(1), Cons(N(2), Nil)))
+	// Cons(Sym(+), Cons(1, Cons(2, Nil)))
 }
 
 func ExampleParse_multiple() {

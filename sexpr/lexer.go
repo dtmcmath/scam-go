@@ -23,9 +23,10 @@ const (
 	itemEOF
 	itemLparen                // (
 	itemRparen                // )
+	itemComment               // ; ... \n
 	itemDot                   // .
 	itemNumber                // a numeric thing
-	itemQuotedSymbol          // 'abc
+	itemSingleQuote           // '
 	itemSymbol                // abc
 	itemBoolean               // #t or #f
 	itemWhitespace            // ... maybe not needed
@@ -39,14 +40,14 @@ func (i item) String() string {
 	case itemRparen: return "RPAREN"
 	case itemDot: return "DOT"
 	case itemNumber: return fmt.Sprintf("NUMBER(%s)", i.val)
-	case itemQuotedSymbol: return fmt.Sprintf("QSYMBOL(%s)", i.val)
+	case itemSingleQuote: return "QUOTE"
 	case itemSymbol: return fmt.Sprintf("SYMBOL(%s)", i.val)
 	case itemBoolean: return fmt.Sprintf("BOOL(%s)", i.val)
 	case itemWhitespace: return "WHITESPACE"
-	case itemQuotationMark: return "QUOTE"
+	case itemQuotationMark: return "DOUBLEQUOTE"
 	case itemError: return fmt.Sprintf("ERROR(%s)", i.val)
 	default:
-		panic(fmt.Sprintf("No way:  token {%v, $v}", i.typ, i.val))
+		panic(fmt.Sprintf("Unrecognized token in 'String': {%v, $v}", i.typ, i.val))
 	}
 }
 
@@ -66,6 +67,13 @@ type lexer struct {
 }
 
 type stateFn func(*lexer) stateFn
+
+type runeTester func(rune) bool
+func mkLookupFunc (s string) runeTester {
+	return func(r rune) bool {
+		return strings.IndexRune(s, r) >= 0
+	}
+}
 
 // run lexes the input by executing state functions
 // until the state is nil.
@@ -155,19 +163,20 @@ func (l *lexer) peek() (r rune) {
     return r
 }
 
+func matchOneOf(r rune, preds ...runeTester) bool {
+	for _, pred := range preds {
+		if pred(r) {
+			return true
+		}
+	}
+	return false
+}
 // accept consumes the next rune
 // if it's from the valid set.
 func (l *lexer) accept(valid string) bool {
-	return l.acceptPredicate(func (r rune) bool {
-		return strings.IndexRune(valid, r) >= 0
-	})
-    // if strings.IndexRune(valid, l.next()) >= 0 {
-    //     return true
-    // }
-    // l.backup()
-    // return false
+	return l.acceptPredicate(mkLookupFunc(valid))
 }
-func (l *lexer) acceptPredicate(preds ...func(rune) bool) bool {
+func (l *lexer) acceptPredicate(preds ...runeTester) bool {
 	r := l.next()
 	for _, pred := range preds {
 		if pred(r) {
@@ -180,13 +189,27 @@ func (l *lexer) acceptPredicate(preds ...func(rune) bool) bool {
 
 // acceptRun consumes a run of runes from the valid set.
 func (l *lexer) acceptRun(valid string) {
-	l.acceptRunPredicate(func (r rune) bool {
-		return strings.IndexRune(valid, r) >= 0
-    })
+	l.acceptRunPredicate(mkLookupFunc(valid))
 }
-func (l *lexer) acceptRunPredicate(preds ...func(rune) bool) {
+func (l *lexer) acceptRunPredicate(preds ...runeTester) {
 	for l.acceptPredicate(preds...) {
 	}
+}
+
+// acceptUntilPredicate consumes a run of runes until a rune matches
+// one of the predicate conditions.  Once there is a match, we back up
+// one step (un-ingest the rune) and return.
+//
+// EOF matches automatically/implicitly.
+func (l *lexer) acceptUntilPredicate(preds ...runeTester) {
+	for {
+		r := l.next()
+		if m := r == eof || matchOneOf(r, preds...) ; m {
+			l.backup()
+			return
+		}
+	}
+	panic("Predicate-test found the second dimension")
 }
 
 // error returns an error token and terminates the scan
@@ -240,6 +263,39 @@ func lex(name string, src <-chan rune) (*lexer, chan item) {
 // }
 
 ////
+// Helpers that "define" the language
+////
+var (
+	isPartOfASymbol runeTester
+	looksLikeSymbolTerminator runeTester
+	looksLikeNumberStart runeTester
+)
+
+func init() {
+	isPartOfASymbol = func() runeTester {
+		// Oversimplified from https://www.scheme.com/tspl4/grammar.html#grammar:symbols
+		l := mkLookupFunc("*$")
+		return func (r rune) bool {
+			switch {
+			case unicode.IsLetter(r), l(r), '0' <= r && r <= '9' :
+				return true
+			case unicode.IsPunct(r):
+				return !looksLikeSymbolTerminator(r)
+			default:
+				return false
+			}
+		}
+	}()
+	// looksLikeSymbolTerminator matches runes that would end a symbol-run
+	looksLikeSymbolTerminator = func() runeTester {
+		l := mkLookupFunc(");")
+		return func (r rune) bool {
+			return r == eof || unicode.IsSpace(r) || l(r)
+		}
+	}()
+	looksLikeNumberStart = mkLookupFunc("+-")
+}
+////
 // The state functions
 ////
 
@@ -259,26 +315,32 @@ func lexText(l *lexer) stateFn {
 			l.emit(itemLparen)
 		case r == ')':
 			l.emit(itemRparen)
-		case r == '+' || r == '-':
-			peek := l.peek()
-			if unicode.IsSpace(peek) || peek == eof || peek == ')' {
+		case r == ';':
+			return lexComment
+		case looksLikeNumberStart(r):
+			// Look ahead to see whether it's a number or a symbol
+			switch peek := l.peek() ; {
+			case looksLikeSymbolTerminator(peek):
 				return lexSymbol
-			} else {
-				l.backup()
+			default:
+				l.backup() // We read the number start; put it back
 				return lexNumber
 			}
 		case '0' <= r && r <= '9':
+			// It's going to be a number
 			l.backup()
 			return lexNumber
 		case r == '\'':
-			l.ignore()
-			return lexQuotedSymbol
-		case unicode.IsLetter(r):
-			// No backup; lexSymbol expects to have read one
-			return lexSymbol
+			if l.peek() == '\'' {
+				return l.errorf("invalid quote sequence %q", l.input[l.start:])
+			}
+			l.emit(itemSingleQuote)
 		case r == '#':
 			l.ignore() // Consume
 			return lexBoolean
+		case isPartOfASymbol(r):
+			// No backup; lexSymbol expects to have read one
+			return lexSymbol
 		default:
 			return l.errorf("unrecognized '%c' in '%q'", r, l.input[l.start:l.pos])
 		}
@@ -317,26 +379,10 @@ func lexNumber(l *lexer) stateFn {
     return lexText
 }	
 
-func lexQuotedSymbol(l *lexer) stateFn {
-	if !l.acceptPredicate(unicode.IsLetter) {
-		return l.errorf("quoted symbols must start with a letter, not %q",
-			l.input[-1+l.start:])
-	}
-	l.acceptRunPredicate(unicode.IsLetter, unicode.IsNumber)
-	l.emit(itemQuotedSymbol)
-	return lexText
-}
-
 func lexSymbol(l *lexer) stateFn {
-	// We've already accepted a letter.  Go until the first
-	// non-alphanumeric thing
-	l.acceptRunPredicate(
-		unicode.IsLetter,
-		unicode.IsNumber,
-		func(c rune) bool {
-			return unicode.IsPunct(c) && c != ')'
-		},
-	)
+	// We've already accepted part.  Go until we find something
+	// that doesn't apply.
+	l.acceptRunPredicate(isPartOfASymbol)
 	l.emit(itemSymbol)
 	return lexText
 }
@@ -354,5 +400,11 @@ func lexBoolean(l *lexer) stateFn {
 	}
 	// else
 	l.emit(itemBoolean)
+	return lexText
+}
+
+func lexComment(l *lexer) stateFn {
+	l.acceptUntilPredicate(mkLookupFunc("\n"))
+	l.emit(itemComment)
 	return lexText
 }

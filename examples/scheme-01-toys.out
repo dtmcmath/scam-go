@@ -1,0 +1,52 @@
+Sym(atom)
+Sym(atom)
+Sym(turkey)
+1492
+Sym(*abc$)
+Sym(*abc$)
+Cons(Sym(atom), Nil)
+Cons(Sym(atom), Nil)
+Cons(Sym(atom), Cons(Sym(turkey), Cons(Sym(or), Nil)))
+Cons(Cons(Sym(atom), Cons(Sym(turkey), Nil)), Cons(Sym(or), Nil))
+Sym(xyz)
+Cons(Sym(x), Cons(Sym(y), Cons(Sym(z), Nil)))
+Cons(Cons(Sym(x), Cons(Sym(y), Cons(Sym(z), Nil))), Nil)
+Cons(Sym(how), Cons(Sym(are), Cons(Sym(you), Cons(Sym(doing), Cons(Sym(so), Cons(Sym(far), Nil))))))
+Cons(Cons(Cons(Sym(how), Nil), Cons(Sym(are), Nil)), Cons(Cons(Cons(Sym(you), Nil), Cons(Cons(Sym(doing), Cons(Sym(so), Nil)), Nil)), Cons(Sym(far), Nil)))
+Nil
+Cons(Nil, Cons(Nil, Cons(Nil, Cons(Nil, Nil))))
+Cons(Sym(atom), Cons(Sym(turkey), Nil))
+Sym(or)
+Nil
+Sym(a)
+Cons(Sym(a), Cons(Sym(b), Cons(Sym(c), Nil)))
+Cons(Cons(Sym(hotdogs), Nil), Nil)
+Cons(Sym(hotdogs), Nil)
+Cons(Sym(b), Cons(Sym(c), Nil))
+Cons(Sym(x), Cons(Sym(y), Cons(Sym(z), Nil)))
+Nil
+Cons(Sym(t), Cons(Sym(r), Nil))
+Cons(Sym(x), Cons(Sym(y), Nil))
+Cons(Cons(Cons(Sym(c), Nil), Nil), Nil)
+Cons(Sym(peanut), Cons(Sym(butter), Cons(Sym(and), Cons(Sym(jelly), Nil))))
+Cons(Cons(Sym(banana), Cons(Sym(and), Nil)), Cons(Sym(peanut), Cons(Sym(butter), Cons(Sym(and), Cons(Sym(jelly), Nil)))))
+Cons(Cons(Cons(Sym(help), Nil), Cons(Sym(this), Nil)), Cons(Sym(is), Cons(Sym(very), Cons(Cons(Cons(Sym(hard), Nil), Cons(Sym(to), Cons(Sym(learn), Nil))), Nil))))
+Cons(Cons(Sym(a), Cons(Sym(b), Cons(Cons(Sym(c), Nil), Nil))), Nil)
+Cons(Sym(a), Nil)
+Cons(Sym(a), Cons(Sym(b), Nil))
+Cons(Sym(a), Cons(Sym(c), Cons(Sym(d), Nil)))
+Nil
+#t
+#f
+Nil
+#t
+#f
+#t
+#f
+#f
+#t
+#f
+#t
+#f
+#t
+#t

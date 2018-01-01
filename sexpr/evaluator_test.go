@@ -22,6 +22,10 @@ func TestEvaluateEqQ(t *testing.T) {
 		{ "(car (cons 1 2))", atomone },
 		{ "(eq? (car (cons 1 2)) 1)", True },
 		{ "(eq? (cons 1 2) (cons 1 2))", False },
+		{ "'()", Nil },
+		{ "()", Nil },
+		{ "'1", atomone },
+		{ "(cons '1 ())", mkList(atomone) },
 	}
 
 	for _, test := range tests {
@@ -30,7 +34,7 @@ func TestEvaluateEqQ(t *testing.T) {
 			t.Errorf("Parsing %q gave no S-expressions", test.input)
 		} else {
 			got := Evaluate(sx)
-			if got != test.want {
+			if !equalSexpr(got, test.want) {
 				t.Errorf("Evaluate[%s]=%v, want %v",
 					test.input, got, test.want,
 				)
@@ -53,8 +57,8 @@ func ExampleEvaluator() {
 		fmt.Println("gave", val)
 	}
 	// Output:
-	// Evaluating Cons(Sym(cons), Cons(N(1), Cons(N(2), Nil)))
-	// gave Cons(N(1), N(2))
-	// Evaluating Cons(Sym(eq?), Cons(Cons(Sym(car), Cons(Cons(Sym(cons), Cons(N(1), Cons(N(2), Nil))), Nil)), Cons(N(1), Nil)))
+	// Evaluating Cons(Sym(cons), Cons(1, Cons(2, Nil)))
+	// gave Cons(1, 2)
+	// Evaluating Cons(Sym(eq?), Cons(Cons(Sym(car), Cons(Cons(Sym(cons), Cons(1, Cons(2, Nil))), Nil)), Cons(1, Nil)))
 	// gave #t
 }
