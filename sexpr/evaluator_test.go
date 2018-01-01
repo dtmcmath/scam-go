@@ -57,8 +57,8 @@ func ExampleEvaluator() {
 		fmt.Println("gave", val)
 	}
 	// Output:
-	// Evaluating Cons(Sym(cons), Cons(N(1), Cons(N(2), Nil)))
-	// gave Cons(N(1), N(2))
-	// Evaluating Cons(Sym(eq?), Cons(Cons(Sym(car), Cons(Cons(Sym(cons), Cons(N(1), Cons(N(2), Nil))), Nil)), Cons(N(1), Nil)))
+	// Evaluating Cons(Sym(cons), Cons(1, Cons(2, Nil)))
+	// gave Cons(1, 2)
+	// Evaluating Cons(Sym(eq?), Cons(Cons(Sym(car), Cons(Cons(Sym(cons), Cons(1, Cons(2, Nil))), Nil)), Cons(1, Nil)))
 	// gave #t
 }
