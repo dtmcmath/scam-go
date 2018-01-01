@@ -25,7 +25,7 @@ func TestEvaluateEqQ(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		_, sexprs := Parse("test", test.input)
+		_, sexprs := Parse("test", mkRuneChannel(test.input))
 		if sx, ok := <- sexprs ; !ok {
 			t.Errorf("Parsing %q gave no S-expressions", test.input)
 		} else {
@@ -46,7 +46,7 @@ func TestEvaluateEqQ(t *testing.T) {
 func ExampleEvaluator() {
 	s := "(cons 1 2) (eq? (car (cons 1 2)) 1)"
 
-	_, ch := Parse("repl", s)
+	_, ch := Parse("repl", mkRuneChannel(s))
 	for sx := range ch {
 		fmt.Println("Evaluating", sx)
 		val := Evaluate(sx)

@@ -54,7 +54,7 @@ func TestSimpleLexer(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		_, ch := lex("test", test.input)
+		_, ch := lex("test", mkRuneChannel(test.input))
 		var got []item
 		for it := range ch {
 			got = append(got, it)
@@ -69,7 +69,7 @@ func TestSimpleLexer(t *testing.T) {
 			
 func ExampleLexer() {
 	sexpr := " 'abc (3.14159)"
-	_, ch := lex("test", sexpr)
+	_, ch := lex("test", mkRuneChannel(sexpr))
 	for tok := range ch {
 		fmt.Println(tok)
 	}
@@ -84,7 +84,7 @@ func ExampleLexer() {
 
 func ExampleLexing2 () {
 	sexpr := "+"
-		_, ch := lex("test", sexpr)
+		_, ch := lex("test", mkRuneChannel(sexpr))
 	for tok := range ch {
 		fmt.Println(tok)
 	}
@@ -95,19 +95,19 @@ func ExampleLexing2 () {
 
 func ExampleBadLexing () {
 	sexpr := "(add '0 1)"
-		_, ch := lex("test", sexpr)
+		_, ch := lex("test", mkRuneChannel(sexpr))
 	for tok := range ch {
 		fmt.Println(tok)
 	}
 	// Output:
 	// LPAREN
 	// SYMBOL(add)
-	// ERROR(quoted symbols must start with a letter, not "'0 1)")
+	// ERROR(quoted symbols must start with a letter, not "'0")
 }
 
 func ExampleBadLexing2 () {
 	sexpr := "(0add 0 1)"
-		_, ch := lex("test", sexpr)
+		_, ch := lex("test", mkRuneChannel(sexpr))
 	for tok := range ch {
 		fmt.Println(tok)
 	}

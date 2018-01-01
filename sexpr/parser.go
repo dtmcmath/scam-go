@@ -56,7 +56,6 @@ func (s stackOfSexprLists) String() string {
 
 type parser struct {
 	name string
-	input string
 	lex *lexer
 	items <-chan item
 	sexprs chan Sexpr
@@ -81,10 +80,9 @@ func (p *parser) unsupportedf(format string, args ...interface{}) {
 	p.paniqf(format, args...)
 }
 
-func Parse(name, input string) (*parser, <-chan Sexpr) {
+func Parse(name string, input <-chan rune) (*parser, <-chan Sexpr) {
 	p := &parser{
 		name: name,
-		input: input,
 		sexprs: make(chan Sexpr),
 		stack: &stackOfSexprLists{nil},
 	}
@@ -131,8 +129,7 @@ func (p *parser) run() {
 		case itemQuotedSymbol:
 			p.emit(mkAtomQuoted(tok.val))
 		case itemQuotationMark, itemDot:
-			p.unsupportedf("We aren't ready for '%s' yet, «%s»",
-				tok, p.input[p.lex.start:])
+			p.unsupportedf("We aren't ready for '%s' yet", tok)
 			return
 		case itemWhitespace:
 			continue

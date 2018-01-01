@@ -3,7 +3,6 @@ package sexpr
 import (
 	"errors"
 	"fmt"
-	// "log"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -52,16 +51,18 @@ func (i item) String() string {
 }
 
 const (
-	eof rune = utf8.RuneError // Find a better "eof" rune
+	eof rune = rune(0) // what you get when reading from a closed channel
 )
 
 type lexer struct {
-    name  string    // used only for error reports.
-    input string    // the string being scanned.
-    start int       // start position of this item.
-    pos   int       // current position in the input.
-    width int       // width of last rune read from input.
-    items chan item // channel of scanned items.
+	name  string    // used only for error reports.
+	src   <-chan rune // the source of runes
+	buf   chan rune // Another source of runes (peek/back)
+	input string    // the string that has been scanned.
+	start int       // start position of this item.
+	pos   int       // current position in the input.
+	width int       // width of last rune read from input.
+	items chan item // channel of scanned items.
 }
 
 type stateFn func(*lexer) stateFn
@@ -83,14 +84,26 @@ func (l *lexer) emit(t itemType) {
 
 // next returns the next rune in the input.
 func (l *lexer) next() (r rune) {
-    if l.pos >= len(l.input) {
+	// Non-blocking check to see whether something is buffered
+	var ok bool
+	select {
+	case r, ok = <- l.buf:
+		if r == eof {
+			ok = false
+		}
+	default:
+		r, ok = <- l.src
+		if ok {
+			l.input += string(r)
+		}
+	}
+	if !ok {
 		// BUG or FEATURE?  If used in "peek", this will make backup
 		// impossible.
-        l.width = 0
-        return eof
-    }
-    r, l.width =
-        utf8.DecodeRuneInString(l.input[l.pos:])
+		l.width = 0
+		return eof
+	}
+	l.width = utf8.RuneLen(r)
     l.pos += l.width
     return r
 }
@@ -123,7 +136,15 @@ func (l *lexer) ignore() {
 // backup steps back one rune.
 // Can be called only once per call of next and not after a peek.
 func (l *lexer) backup() {
+	if l.width == 0 {
+		l.buf <- eof
+		return
+	}
+	// else
+	cur := l.pos
     l.pos -= l.width
+	r, _ := utf8.DecodeRuneInString(l.input[l.pos:cur])
+	l.buf <- r
 }
 
 // peek returns but does not consume
@@ -179,12 +200,17 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
     return nil
 }
 
-func lex(name, input string) (*lexer, chan item) {
-    l := &lexer{
-        name:  name,
-        input: input,
-        items: make(chan item),
-    }
+func lex_string(name, input string) (*lexer, chan item) {
+	return lex(name, mkRuneChannel(input))
+}
+
+func lex(name string, src <-chan rune) (*lexer, chan item) {
+	l := &lexer{
+		name: name,
+		src: src,
+		buf: make(chan rune, 1), // could use more...
+		items: make(chan item),
+	}
     go l.run()  // Concurrently run state machine.
     return l, l.items
 }

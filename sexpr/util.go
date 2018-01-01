@@ -3,6 +3,8 @@ package sexpr
 import (
 	"errors"
 	"fmt"
+	"io"
+	"strings"
 )
 
 // Utility/helper functions
@@ -68,3 +70,19 @@ func deepEqualSexpr(a []Sexpr, b []Sexpr) bool {
 	return false
 }
 
+func mkRuneChannel(in string) <-chan rune {
+	ans := make(chan rune)
+	go func() {
+		rdr := strings.NewReader(in)
+		// This is what a while-loop looks like??
+		r, _, err := rdr.ReadRune()
+		for ; err != io.EOF ; r, _, err = rdr.ReadRune() {
+			if err != nil {
+				panic("Completely unexpected error " + err.Error())
+			}
+			ans <- r
+		}
+		close(ans)
+	}()
+	return ans
+}

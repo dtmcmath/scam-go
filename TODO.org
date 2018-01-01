@@ -35,15 +35,12 @@ Oops.  We actually got a lot of that stuff backwards, even in the
 
 * Desiderata
 
-** REPL
+** TODO A server
 
-It should be straightforward to let a user type and just see evaluated
-expressions as they become available.
-
-Similarly, one could develop a
-server similar to
-[[https://github.com/adonovan/gopl.io/blob/master/ch8/reverb2/reverb.go][the "reverb" example from /The Go Programming Language/]].
-Something that would reflect back the evaluated expression.
+It should be straightforward to develop a server similar to
+[[https://github.com/adonovan/gopl.io/blob/master/ch8/reverb2/reverb.go][the
+"reverb" example from /The Go Programming Language/]].  Something that
+would reflect back the evaluated expression.
 
 ** Symbol tables
 
@@ -90,7 +87,5 @@ is?
 * Roadmap
 
 This section tries to put some of the developments into a sequence.
-
-** Parse from a stream
 
 ** Cons-es recycled

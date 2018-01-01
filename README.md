@@ -42,16 +42,26 @@ turned out that Mr. Pike was right.
 
 ## Usage
 
-Eh.  As of now, it's just examples.  "`godoc`" can show how to do
-little things.  Soon, we'll support
+To evaluate a file, just
 
-    go run repl.go
+    go run scam.go -in examples/arithmetic.ss
 
-    go run scam_server.go
+To use `scam` as a REPL, use
+
+    go run scam.go
+
+and type.
+
+Coming soon:
+
+    go run scam_server.go -port 8000
+    echo "(eq? (car (cons 1 2) 2))" | nc localhost 8000
 
 ## For further reading
 
 * We maintain a list of things [to do](./TODO.org).
 
-<!--  LocalWords:  goroutines
+<!--  LocalWords:  goroutines Schemelike Matthias Felleisen Krumins
+ -->
+<!--  LocalWords:  REPL
  -->

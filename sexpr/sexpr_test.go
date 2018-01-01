@@ -52,7 +52,7 @@ func TestUnconsify(t *testing.T) {
 		atomthree,
 		atomtwo,
 	}
-	_, sexprs := Parse("test", input)
+	_, sexprs := Parse("test", mkRuneChannel(input))
 	list := <- sexprs
 	if got, err := unconsify(list) ; err != nil {
 		t.Error(err)

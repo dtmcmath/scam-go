@@ -58,7 +58,7 @@ func TestSimpleParse(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		_, ch := Parse("test", test.input)
+		_, ch := Parse("test", mkRuneChannel(test.input))
 		var got []Sexpr
 		for sx := range ch {
 			got = append(got, sx)
@@ -73,7 +73,7 @@ func TestSimpleParse(t *testing.T) {
 
 func ExampleParse_nil() {
 	s := "()"
-	_, ch := Parse("test", s)
+	_, ch := Parse("test", mkRuneChannel(s))
 	for sx := range ch {
 		fmt.Println(sx)
 	}
@@ -83,7 +83,7 @@ func ExampleParse_nil() {
 
 func ExampleParse_list() {
 	s := "(+ 1 2)"
-	_, ch := Parse("test", s)
+	_, ch := Parse("test", mkRuneChannel(s))
 	for sx := range ch {
 		fmt.Println(sx)
 	}
@@ -93,7 +93,7 @@ func ExampleParse_list() {
 
 func ExampleParse_multiple() {
 	s := "#f (+)"
-	_, ch := Parse("test", s)
+	_, ch := Parse("test", mkRuneChannel(s))
 	for sx := range ch {
 		fmt.Println(sx)
 	}
