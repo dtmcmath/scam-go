@@ -42,7 +42,10 @@ func (r *repl) Run() {
 	_, sexprs := sexpr.Parse("parser_"+r.name, ch)
 	for sx := range sexprs {
 		val := sexpr.Evaluate(sx)
-		fmt.Fprintln(r.out, val)
+		if _, err := sexpr.Fprint(r.out, val) ; err != nil {
+			fmt.Fprint(r.err, "!!ERROR: ", err)
+		}
+		fmt.Fprintln(r.out, "")
 		fmt.Fprint(r.out, r.prompt)
 	}
 }
