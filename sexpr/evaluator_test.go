@@ -26,6 +26,8 @@ func TestEvaluateEqQ(t *testing.T) {
 		{ "()", Nil },
 		{ "'1", atomone },
 		{ "(cons '1 ())", mkList(atomone) },
+		// TODO:  Precision, on numbers
+		{ "(+ 1 3.141593)", mkAtomNumber("4.141593") },
 	}
 
 	for _, test := range tests {

@@ -11,14 +11,6 @@ done to make SCAM a thing of true beauty.
 
 * Issues
 
-** Non-integer arithmetic is impossible
-
-Should =(eq? 3 3.0)= be =#t= or =#f=?  As of now, the lexer tries to
-understand floating point numbers, but the evaluator for =+= only
-works on integers.
-
-Since SCAM isn't really a calculator, this is a low-priority issue.
-
 ** Lex errors are very cryptic
 
 * Desiderata

@@ -9,13 +9,19 @@ import (
 func Evaluate(s Sexpr) Sexpr {
 	switch s := s.(type) {
 	case sexpr_atom: return s.evaluate()
-	case sexpr_error: return s
 	case sexpr_cons:
 		car := Evaluate(s.car)
 		switch car := car.(type) {
 		case sexpr_atom:
 			if evaluator, ok := evaluators[car] ; ok {
-				return evaluator(s.cdr)
+				if val, err := evaluator(s.cdr) ; err != nil {
+					// We should really "panic"... but that won't help
+					// debugging, so we're permissive (and abuse "atom")
+					log.Print(err)
+					return mkAtomSymbol(err.Error())
+				} else {
+					return val
+				}
 			}
 		}
 		// else
@@ -46,7 +52,20 @@ var primitiveStrings = []string {
 // An evaluator is a decorated S-expression (probably an Atom) that
 // can, when it appears in the Car of a Cons, evaluate the expression
 // into a new S-expression
-type evaluator func(Sexpr) Sexpr
+type evaluator func(Sexpr) (Sexpr, error)
+
+// A special kind of error to indicate something about evaluation
+type evaluationError struct{
+	context string
+	message string
+}
+func (e evaluationError) Error() string {
+	return fmt.Sprintf("Exception in %s: %s)", e.context, e.message)
+}
+// func (e evaluationError) Sprint() (string, error) {
+// 	// Implement this method if we want an evaluation error to look
+// 	// like an S-expression
+// }
 
 // Pre-make all the primitive symbols.  Maybe these need to be their
 // own things; we'll see how Evaluate goes
@@ -70,154 +89,228 @@ func init() {
 }
 
 /////
+// Helpers
+/////
+func requireArgCount(lst Sexpr, context string, required int) ([]Sexpr, error) {
+	args, err := unconsify(lst)
+	if err != nil {
+		return nil, evaluationError{
+			context,
+			fmt.Sprintf("Strange arguments %q", lst),
+		}
+	} else if len(args) != required {
+		// return nil, evaluationError{
+		// 	context: context,
+		// 	message: fmt.Sprintf("Incorrect argument count (%d) in call %s",
+		// 		len(args), lst)
+		// }
+		plural := ""
+		if required > 1 {
+			plural = "s"
+		}
+		return nil, evaluationError{
+			context: context,
+			message: fmt.Sprintf("Expected %d argument%s, got %d",
+				required, plural, len(args),
+			),
+		}
+	} else {
+		return args, nil
+	}
+}
+/////
 // Definitions of evaluators
 /////
-func evalCons(lst Sexpr) Sexpr {
-	args, err := unconsify(lst)
+func evalCons(lst Sexpr) (Sexpr, error) {
+	args, err := requireArgCount(lst, "cons", 2)
 	if err != nil {
-		return sexpr_error{"cons", fmt.Sprintf("Strange arguments %q", lst)}
-	} else if len(args) != 2 {
-		return sexpr_error{"cons", fmt.Sprintf("Expected 2 arguments, got %d", len(args))}
+		return nil, err
 	}
 	// else
-	return mkCons(Evaluate(args[0]), Evaluate(args[1]))
+	return mkCons(Evaluate(args[0]), Evaluate(args[1])), nil
 }
 
-func evalCar(lst Sexpr) Sexpr {
-	args, err := unconsify(lst)
+func evalCar(lst Sexpr) (Sexpr, error) {
+	args, err := requireArgCount(lst, "car", 1)
 	if err != nil {
-		return sexpr_error{"car", fmt.Sprintf("Strange arguments %q", lst)}
-	} else if len(args) != 1 {
-		return sexpr_error{"car", fmt.Sprintf("Expected 1 argument, got %d", len(args))}
+		return nil, err
 	}
 	// else
 	first := Evaluate(args[0])
 	switch first := first.(type) {
-	case sexpr_atom:  return sexpr_error{"car", "Cannot 'car' an Atom"}
-	case sexpr_error: return first
-	case sexpr_cons:  return first.car
+	case sexpr_atom:
+		return nil, evaluationError{
+			"car",
+			fmt.Sprintf("%s is not a pair", first),
+		}
+	case sexpr_cons:
+		return first.car, nil // first.car has already been eval'd
 	default:
 		panic(fmt.Sprintf("Unrecognized Sexpr %v", first))
 	}
 }
 
-func evalCdr(lst Sexpr) Sexpr {
-	args, err := unconsify(lst)
+func evalCdr(lst Sexpr) (Sexpr, error) {
+	args, err := requireArgCount(lst, "cdr", 1)
 	if err != nil {
-		return sexpr_error{"cdr", fmt.Sprintf("Strange arguments %q", lst)}
-	} else if len(args) != 1 {
-		return sexpr_error{"cdr", fmt.Sprintf("Expected 1 argument, got %d", len(args))}
+		return nil, err
 	}
 	// else
 	first := Evaluate(args[0])
 	switch first := first.(type) {
-	case sexpr_atom:  return sexpr_error{"cdr", "Cannot 'cdr' an Atom"}
-	case sexpr_error: return first
-	case sexpr_cons:  return first.cdr
+	case sexpr_atom:
+		return nil, evaluationError{
+			"cdr",
+			fmt.Sprintf("%s is not a pair", first),
+		}
+	case sexpr_cons:
+		return first.cdr, nil // first.cdr has already been eval'd
 	default:
 		panic(fmt.Sprintf("Unrecognized Sexpr %v", first))
 	}
 }
 
-func evalEqQ(lst Sexpr) Sexpr {
-	args, err := unconsify(lst)
+func evalEqQ(lst Sexpr) (Sexpr, error) {
+	args, err := requireArgCount(lst, "eq?", 2)
 	if err != nil {
-		return sexpr_error{"eq?", fmt.Sprintf("Strange arguments %q", lst)}
-	} else if len(args) != 2 {
-		return sexpr_error{"eq?", fmt.Sprintf("Expected 2 arguments, got %d", len(args))}
+		return nil, err
 	}
 	// else
 	if Evaluate(args[0]) == Evaluate(args[1]) {
-		return True
+		return True, nil
 	} else {
-		return False
+		// TODO:  Be nice with numbers?  The Little Schemer says
+		//
+		// ; (eq? 5 6)
+		// ; not-applicable because eq? works only on non-numeric atom
+		//
+		// so we're already being generous by saying True sometimes.
+		// For the record, the problem is that "3.0" and "3" and
+		// "3.00" are all different atoms.
+		return False, nil
 	}
 }
 
-func evalPlus(lst Sexpr) Sexpr {
+type intOrFloat struct{
+	asint   int64
+	asfloat float64
+	isInt   bool
+}
+
+func (i intOrFloat) String() string {
+	if i.isInt {
+		return fmt.Sprintf("%d", i.asint)
+	} else {
+		return fmt.Sprintf("%f", i.asfloat)
+	}
+}
+
+func evalPlus(lst Sexpr) (Sexpr, error) {
+	context := "+"
 	args, err := unconsify(lst)
 	if err != nil {
-		return sexpr_error{"+", fmt.Sprintf("Strange arguments %q", lst)}
+		return nil, evaluationError{
+			context,
+			fmt.Sprintf("Strange arguments %q", lst),
+		}
 	}
-	var acc int64
+
+	acc := intOrFloat{
+		asint: 0,
+		asfloat: 0,
+		isInt: true,
+	}
+
 	for _, summand := range args {
 		switch summand := Evaluate(summand).(type) {
 		case sexpr_atom:
 			if summand.typ == atomNumber {
-				val, err := strconv.ParseInt(summand.name, 10, 64)
-				if err != nil {
-					return sexpr_error{"+",
-						fmt.Sprintf("Unexpected non-numeric number summand '%s'", summand),
+				if acc.isInt {
+					val, err := strconv.ParseInt(summand.name, 10, 64)
+					if err != nil {
+						acc.isInt = false
+						acc.asfloat = float64(acc.asint)
+					} else {
+						acc.asint += val
 					}
 				}
-				// else
-				acc += val
+				// NOT else; isInt might have changed!
+				if !acc.isInt {
+					val, err := strconv.ParseFloat(summand.name, 64)
+					if err != nil {
+						return nil, evaluationError{
+							context,
+							fmt.Sprintf("%s masquerades as a Number!!", summand),
+						}
+					} else {
+						acc.asfloat += val
+					}
+				}
 			} else {
-				return sexpr_error{"+",
-					fmt.Sprintf("Unexpected non-numeric summand '%s'", summand),
+				return nil, evaluationError{
+					context,
+					fmt.Sprintf("%s is not a number", summand),
 				}
 			}
-		case sexpr_error: return summand
-		default: return sexpr_error{"+", fmt.Sprintf("Unexpected summand '%s'", summand)}
+		default:
+			return nil, evaluationError{
+				context,
+				fmt.Sprintf("%s is not a number", summand),
+			}
 		}
 	}
 
-	return mkAtomNumber(fmt.Sprintf("%d", acc))
+	return mkAtomNumber(fmt.Sprintf("%s", acc)), nil
 }
 
-func evalQuote(lst Sexpr) Sexpr {
-	args, err := unconsify(lst)
+// evalQuote is a macro; it does not evaluate all its arguments
+func evalQuote(lst Sexpr) (Sexpr, error) {
+	args, err := requireArgCount(lst, "quote", 1)
 	if err != nil {
-		return sexpr_error{"quote", fmt.Sprintf("Strange arguments %q", lst)}
-	} else if len(args) != 1 {
-		return sexpr_error{"eq?", fmt.Sprintf("Expected 1 argument, got %d", len(args))}
+		return nil, err
 	}
 	// else
 	// return the first argument, unevaluated
-	return args[0]
+	return args[0], nil
 }
 
-func evalNullQ(lst Sexpr) Sexpr {
-	args, err := unconsify(lst)
+func evalNullQ(lst Sexpr) (Sexpr, error) {
+	args, err := requireArgCount(lst, "null?", 1)
 	if err != nil {
-		return sexpr_error{"null?", fmt.Sprintf("Strange arguments %q", lst)}
-	} else if len(args) != 1 {
-		return sexpr_error{"null?", fmt.Sprintf("Expected 1 argument, got %d", len(args))}
+		return nil, err
 	}
 	// else
 	if Evaluate(args[0]) == Nil {
-		return True
+		return True, nil
 	} else {
-		return False
+		return False, nil
 	}
 }
 
-func evalAtomQ(lst Sexpr) Sexpr {
-	args, err := unconsify(lst)
+func evalAtomQ(lst Sexpr) (Sexpr, error) {
+	args, err := requireArgCount(lst, "atom?", 1)
 	if err != nil {
-		return sexpr_error{"atom?", fmt.Sprintf("Strange arguments %q", lst)}
-	} else if len(args) != 1 {
-		return sexpr_error{"atom?", fmt.Sprintf("Expected 1 argument, got %d", len(args))}
+		return nil, err
 	}
 	// else
 	val := Evaluate(args[0])
 	switch val := val.(type) {
 	case sexpr_atom:
 		if val != Nil {
-			return True
+			return True, nil
 		} else {
-			return False
+			return False, nil
 		}
-	default:         return False
+	default:
+		return False, nil
 	}
 }
 
-func evalDefine(lst Sexpr) Sexpr {
-	args, err := unconsify(lst)
+// evalDefine is a macro; it does not evaluate all its arguments
+func evalDefine(lst Sexpr) (Sexpr, error) {
+	args, err := requireArgCount(lst, "define", 2)
 	if err != nil {
-		return sexpr_error{"define", fmt.Sprintf("Strange arguments %q", lst)}
-	} else if len(args) != 2 {
-		return sexpr_error{"define?", fmt.Sprintf("Expected 2 arguments, got %d", len(args))}
+		return nil, err
 	}
 	// else
 	key := args[0]
@@ -226,7 +319,7 @@ func evalDefine(lst Sexpr) Sexpr {
 		// TODO:  Check further; let's not redefine Nil, for instance
 		val := Evaluate(args[1])
 		log.Printf("DEFINE %q <-- %s", key, val)
-		return Nil
+		return Nil, nil
 	default:
 		panic(fmt.Sprintf("Cannot define a non-symbol: %q", key))
 	}

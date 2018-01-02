@@ -211,16 +211,6 @@ func (c sexpr_cons) String() string {
 	return fmt.Sprintf("Cons(%s, %s)", c.car, c.cdr)
 }
 
-// A special kind of S-expression is the "error".  I think we're going
-// to need it, but I haven't figured out quite where yet.
-type sexpr_error struct {
-	context string
-	message string
-}
-func (e sexpr_error) Sprint() (string, error) {
-	return fmt.Sprintf("(ERROR %s %q)", e.context, e.message), nil
-}
-
 // A Sexpr includes sexpr_atom and sexpr_cons.  It's a discriminated union
 type Sexpr interface{
 	Sprint() (string, error)
