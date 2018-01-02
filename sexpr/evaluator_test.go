@@ -5,11 +5,9 @@ import (
 	"testing"
 )
 
-func TestEvaluateEqQ(t *testing.T) {
-	atomone := mkAtomNumber("1")
-	// atomtwo := mkAtomNumber("2")
-	// atomthree := mkAtomNumber("3")
+// atomone, atomtwo, etc are defined in sexpr_test.go
 
+func TestEvaluateEqQ(t *testing.T) {
 	var tests = []struct{
 		input string
 		want []Sexpr
@@ -36,12 +34,56 @@ func TestEvaluateEqQ(t *testing.T) {
 			[]Sexpr{ Nil, True },
 		},
 		{
-			"(define a 2)'(a a)",
-			[]Sexpr{ Nil, mkList(atomtwo, atomtwo) },
+			"(define a 1)(define b 2)(cons a b)",
+			[]Sexpr{ Nil, Nil, mkCons(atomone, atomtwo) },
 		},
 	}
 
 	for _, test := range tests {
+		resetEvaluationContext()
+		_, sexprs := Parse("test", mkRuneChannel(test.input))
+		idx := 0
+		for sx := range sexprs {
+			got := Evaluate(sx)
+			if !equalSexpr(got, test.want[idx]) {
+				t.Errorf("Evaluate[%s][#%d]=%v, want %v",
+					test.input, idx, got, test.want[idx],
+				)
+			}
+			idx += 1
+		}
+		if idx != len(test.want) {
+			t.Error("Evaluate[%s] got %d results, want %d",
+				test.input, idx, len(test.want),
+			)
+		}
+	}
+}
+
+func TestEvaluateQuote(t *testing.T) {
+	atoma := mkAtomSymbol("a")
+	atomb := mkAtomSymbol("b")
+
+	var tests = []struct{
+		input string
+		want []Sexpr
+	} {
+		{
+			"(define a 2)'(a a)",
+			[]Sexpr{ Nil, mkList(atoma, atoma) },
+		},
+		{
+			"(define a 3)(define b 2)(cons 'a (cons 'b '()))",
+			[]Sexpr{ Nil, Nil, mkList(atoma, atomb) },
+		},
+		{
+			"(define a 1) 'a",
+			[]Sexpr{ Nil, atoma },
+		},
+	}
+
+	for _, test := range tests {
+		resetEvaluationContext()
 		_, sexprs := Parse("test", mkRuneChannel(test.input))
 		idx := 0
 		for sx := range sexprs {

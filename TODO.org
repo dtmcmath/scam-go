@@ -21,7 +21,7 @@ Consider
 (define a 1)
 (define b 2)
 (cons a b)   ; evaluates to (1 . 2), correctly
-'(a b)       ; evaluates to (a 2), incorrectly
+'(a b)       ; evaluates to (a 2), incorrectly.  Should be (a b)
 #+END_SRC
 
 The reason ='(a b)= is wrong is that the parser is converting it to
