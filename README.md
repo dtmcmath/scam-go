@@ -56,7 +56,7 @@ On Mac OS X, GOPATH environment variable is set to /Users/{username}. As a resul
 scam.go:4:2: cannot find package "github.mheducation.com/dave-mcmath/scam/repl" in any of:
 	/usr/local/Cellar/go/1.9.2/libexec/src/github.mheducation.com/dave-mcmath/scam/repl (from $GOROOT)
 	/Users/andrewlippert/go/src/github.mheducation.com/dave-mcmath/scam/repl (from $GOPATH)
-	```
+```
 
 Drop a symlink in the appropriate location, pointing at your repo location, and everything will be right with the world.
 
