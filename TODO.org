@@ -13,12 +13,35 @@ done to make SCAM a thing of true beauty.
 
 ** Lex errors are very cryptic
 
+** Quote is misplaced (by parser) for lists
+
+Consider
+
+#+BEGIN_SRC scheme
+(define a 1)
+(define b 2)
+(cons a b)   ; evaluates to (1 . 2), correctly
+'(a b)       ; evaluates to (a 2), incorrectly
+#+END_SRC
+
+The reason ='(a b)= is wrong is that the parser is converting it to
+
+#+BEGIN_SRC scheme
+(cons (quote a) (cons b ()))
+#+END_SRC
+
+as demonstrated by the following session:
+
+#+BEGIN_SRC
+> '(a b)
+2018/01/01 23:36:15 Evaluating a generic 'cons': "Cons(Cons(Sym(quote), Cons(Sym(a), Nil)), Cons(Sym(b), Nil))"
+Exception in lookup: Variable Sym(b) is not bound
+#+END_SRC
+
+There's a (red) test for that in
+[[./sexpr/evaluator_test.go][evaluator_test, TestEvaluateEqQ]], so this seems tractable.
+
 * Desiderata
-
-** Symbol tables
-
-To define keywords *define* and *let*, we need symbol tables into
-which to put those values
 
 ** λ
 
@@ -41,10 +64,13 @@ I really want a keyword "*lambda*".  With that, we could define
 (define cdr (lambda (c) (c 'cdr)))
 #+END_SRC
 
-** Separate parse errors from evaluation errors
+** INPROGRESS Separate parse errors from evaluation errors
 
 I need to read more about what an "error" S-expression looks like.
 Right now, they just look like pretty generic Go structs.
+
+The evaluator's errors look quite a lot like those from
+[[https://cisco.github.io/ChezScheme/][Chez Scheme]] (because I copied them).  Parse errors are still a mess
 
 ** Bignums
 

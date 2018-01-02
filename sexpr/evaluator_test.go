@@ -35,6 +35,10 @@ func TestEvaluateEqQ(t *testing.T) {
 			"(define a 2)(eq? 2 a)",
 			[]Sexpr{ Nil, True },
 		},
+		{
+			"(define a 2)'(a a)",
+			[]Sexpr{ Nil, mkList(atomtwo, atomtwo) },
+		},
 	}
 
 	for _, test := range tests {
@@ -44,7 +48,7 @@ func TestEvaluateEqQ(t *testing.T) {
 			got := Evaluate(sx)
 			if !equalSexpr(got, test.want[idx]) {
 				t.Errorf("Evaluate[%s][#%d]=%v, want %v",
-					test.input, idx, got, test.want,
+					test.input, idx, got, test.want[idx],
 				)
 			}
 			idx += 1
