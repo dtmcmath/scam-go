@@ -73,14 +73,25 @@ func (a sexpr_atom) String() string {
 	}
 }
 
-func (a sexpr_atom) evaluate() Sexpr {
-	// TODO:  Actual lookup in the symbol table
+func (a sexpr_atom) evaluate(ctx *evaluationStack) (Sexpr, sexpr_error) {
 	switch a.typ {
 	case atomSymbol:
-		// log.Printf("Pretend we looked up the value for %s", a)
-		return a
+		// The primitives are just themselves (for now)
+		if _, ok := atomPrimitives[a.name] ; ok {
+			return a, nil
+		}
+		// else
+		if val, ok := ctx.lookup(a) ; !ok {
+			return nil, evaluationError{
+				"lookup",
+				fmt.Sprintf("Variable %s is not bound", a),
+			}
+		} else {
+			return val, nil
+		}
 	default:
-		return a
+		// Hrm.  This is probbably just right.
+		return a, nil
 	}
 }
 

@@ -6,30 +6,65 @@ import (
 	"log"
 )
 
+var rootSymbolTable symbolTable
+var globalEvaluationContext evaluationStack
+
+func init() {
+	resetEvaluationContext()
+}
+// reset the rootSymbolTable.  This is useful for testing!
+func resetEvaluationContext() {
+	ec := evaluationContext{
+		make(map[sexpr_atom]Sexpr),
+		nil,
+	}
+	rootSymbolTable = ec.sym
+	globalEvaluationContext = evaluationStack{&ec}
+}
+
 func Evaluate(s Sexpr) Sexpr {
+	if val, err := evaluateWithContext(s, &globalEvaluationContext) ; err != nil {
+		// The error is an S-expression, because it can Sprint!
+		return err
+		// // We should really do something more dramatic ("panic"?) but
+		// // that won't help debugging, so we're permissive (and abuse
+		// // "atom")
+		// log.Print(err)
+		// return mkAtomSymbol(err.Error())
+	} else {
+		return val
+	}
+}
+
+func evaluateWithContext(s Sexpr, ctx *evaluationStack) (Sexpr, sexpr_error) {
 	switch s := s.(type) {
-	case sexpr_atom: return s.evaluate()
+	case sexpr_atom: return s.evaluate(ctx)
 	case sexpr_cons:
-		car := Evaluate(s.car)
+		car, err := evaluateWithContext(s.car, ctx)
+		if err != nil {
+			return nil, err
+		}
 		switch car := car.(type) {
 		case sexpr_atom:
 			if evaluator, ok := evaluators[car] ; ok {
-				if val, err := evaluator(s.cdr) ; err != nil {
-					// We should really "panic"... but that won't help
-					// debugging, so we're permissive (and abuse "atom")
-					log.Print(err)
-					return mkAtomSymbol(err.Error())
+				if val, err := evaluator(s.cdr, ctx) ; err != nil {
+					return nil, err
 				} else {
-					return val
+					return val, nil
 				}
 			}
 		}
 		// else
-		return mkCons(car, Evaluate(s.cdr))
+		log.Printf("Evaluating a generic 'cons': %q", s)
+		if cdr, err := evaluateWithContext(s.cdr, ctx) ; err != nil {
+			return nil, err
+		} else {
+			return mkCons(car, cdr), nil
+		}
 	default:
 		panic(fmt.Sprintf("(Evaluate) Unrecognized Sexpr (type=%T) %v", s, s))
 	}
-	return Nil
+	return Nil, nil
 }
 
 // Certain primitive Atom(symbol)s are built-in.  They can't be
@@ -52,20 +87,28 @@ var primitiveStrings = []string {
 // An evaluator is a decorated S-expression (probably an Atom) that
 // can, when it appears in the Car of a Cons, evaluate the expression
 // into a new S-expression
-type evaluator func(Sexpr) (Sexpr, error)
+type evaluator func(Sexpr, *evaluationStack) (Sexpr, sexpr_error)
 
 // A special kind of error to indicate something about evaluation
 type evaluationError struct{
 	context string
 	message string
 }
-func (e evaluationError) Error() string {
-	return fmt.Sprintf("Exception in %s: %s)", e.context, e.message)
+// A generic, nullable version of the evaluation error.  We need to
+// use the real type (evaluationError) in return values but the
+// interface (sexpr_error) in method signatures.
+type sexpr_error interface{
+	Error() string
+	Sprint() (string, error)
 }
-// func (e evaluationError) Sprint() (string, error) {
-// 	// Implement this method if we want an evaluation error to look
-// 	// like an S-expression
-// }
+func (e evaluationError) Error() string {
+	return fmt.Sprintf("Exception in %s: %s", e.context, e.message)
+}
+func (e evaluationError) Sprint() (string, error) {
+	// Implement this method if we want an evaluation error to look
+	// like an S-expression
+	return e.Error(), nil
+}
 
 // Pre-make all the primitive symbols.  Maybe these need to be their
 // own things; we'll see how Evaluate goes
@@ -91,9 +134,21 @@ func init() {
 /////
 // Helpers
 /////
-func requireArgCount(lst Sexpr, context string, required int) ([]Sexpr, error) {
-	args, err := unconsify(lst)
-	if err != nil {
+
+// requireArgsCount checks various things about arguments.  Namely
+// that the argument count matches required and, if "ctx" is non-nil,
+// that the arguments are evaluable.
+//
+// It returns the arguments, evaluated if requested, or an error if
+// there is a probblem.
+func requireArgCount(
+	lst Sexpr,
+	context string,
+	required int,
+	ctx *evaluationStack) ([]Sexpr, sexpr_error) {
+	var err sexpr_error
+	args, unconsify_err := unconsify(lst)
+	if unconsify_err != nil {
 		return nil, evaluationError{
 			context,
 			fmt.Sprintf("Strange arguments %q", lst),
@@ -114,30 +169,36 @@ func requireArgCount(lst Sexpr, context string, required int) ([]Sexpr, error) {
 				required, plural, len(args),
 			),
 		}
-	} else {
-		return args, nil
 	}
+	if ctx != nil {
+		for idx, arg := range args {
+			if args[idx], err = evaluateWithContext(arg, ctx) ; err != nil {
+				return nil, err
+			}
+		}
+	}
+	// else
+	return args, nil
 }
 /////
 // Definitions of evaluators
 /////
-func evalCons(lst Sexpr) (Sexpr, error) {
-	args, err := requireArgCount(lst, "cons", 2)
+func evalCons(lst Sexpr, ctx *evaluationStack) (Sexpr, sexpr_error) {
+	args, err := requireArgCount(lst, "cons", 2, ctx)
 	if err != nil {
 		return nil, err
 	}
 	// else
-	return mkCons(Evaluate(args[0]), Evaluate(args[1])), nil
+	return mkCons(args[0], args[1]), nil
 }
 
-func evalCar(lst Sexpr) (Sexpr, error) {
-	args, err := requireArgCount(lst, "car", 1)
+func evalCar(lst Sexpr, ctx *evaluationStack) (Sexpr, sexpr_error) {
+	args, err := requireArgCount(lst, "car", 1, ctx)
 	if err != nil {
 		return nil, err
 	}
 	// else
-	first := Evaluate(args[0])
-	switch first := first.(type) {
+	switch first := args[0].(type) {
 	case sexpr_atom:
 		return nil, evaluationError{
 			"car",
@@ -150,14 +211,13 @@ func evalCar(lst Sexpr) (Sexpr, error) {
 	}
 }
 
-func evalCdr(lst Sexpr) (Sexpr, error) {
-	args, err := requireArgCount(lst, "cdr", 1)
+func evalCdr(lst Sexpr, ctx *evaluationStack) (Sexpr, sexpr_error) {
+	args, err := requireArgCount(lst, "cdr", 1, ctx)
 	if err != nil {
 		return nil, err
 	}
 	// else
-	first := Evaluate(args[0])
-	switch first := first.(type) {
+	switch first := args[0].(type) {
 	case sexpr_atom:
 		return nil, evaluationError{
 			"cdr",
@@ -170,13 +230,13 @@ func evalCdr(lst Sexpr) (Sexpr, error) {
 	}
 }
 
-func evalEqQ(lst Sexpr) (Sexpr, error) {
-	args, err := requireArgCount(lst, "eq?", 2)
+func evalEqQ(lst Sexpr, ctx *evaluationStack) (Sexpr, sexpr_error) {
+	args, err := requireArgCount(lst, "eq?", 2, ctx)
 	if err != nil {
 		return nil, err
 	}
 	// else
-	if Evaluate(args[0]) == Evaluate(args[1]) {
+	if args[0] == args[1] {
 		return True, nil
 	} else {
 		// TODO:  Be nice with numbers?  The Little Schemer says
@@ -205,7 +265,7 @@ func (i intOrFloat) String() string {
 	}
 }
 
-func evalPlus(lst Sexpr) (Sexpr, error) {
+func evalPlus(lst Sexpr, ctx *evaluationStack) (Sexpr, sexpr_error) {
 	context := "+"
 	args, err := unconsify(lst)
 	if err != nil {
@@ -222,7 +282,11 @@ func evalPlus(lst Sexpr) (Sexpr, error) {
 	}
 
 	for _, summand := range args {
-		switch summand := Evaluate(summand).(type) {
+		summand, err := evaluateWithContext(summand, ctx)
+		if err != nil {
+			return nil, err
+		}
+		switch summand := summand.(type) {
 		case sexpr_atom:
 			if summand.typ == atomNumber {
 				if acc.isInt {
@@ -264,8 +328,8 @@ func evalPlus(lst Sexpr) (Sexpr, error) {
 }
 
 // evalQuote is a macro; it does not evaluate all its arguments
-func evalQuote(lst Sexpr) (Sexpr, error) {
-	args, err := requireArgCount(lst, "quote", 1)
+func evalQuote(lst Sexpr, ctx *evaluationStack) (Sexpr, sexpr_error) {
+	args, err := requireArgCount(lst, "quote", 1, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -274,27 +338,26 @@ func evalQuote(lst Sexpr) (Sexpr, error) {
 	return args[0], nil
 }
 
-func evalNullQ(lst Sexpr) (Sexpr, error) {
-	args, err := requireArgCount(lst, "null?", 1)
+func evalNullQ(lst Sexpr, ctx *evaluationStack) (Sexpr, sexpr_error) {
+	args, err := requireArgCount(lst, "null?", 1, ctx)
 	if err != nil {
 		return nil, err
 	}
 	// else
-	if Evaluate(args[0]) == Nil {
+	if args[0] == Nil {
 		return True, nil
 	} else {
 		return False, nil
 	}
 }
 
-func evalAtomQ(lst Sexpr) (Sexpr, error) {
-	args, err := requireArgCount(lst, "atom?", 1)
+func evalAtomQ(lst Sexpr, ctx *evaluationStack) (Sexpr, sexpr_error) {
+	args, err := requireArgCount(lst, "atom?", 1, ctx)
 	if err != nil {
 		return nil, err
 	}
 	// else
-	val := Evaluate(args[0])
-	switch val := val.(type) {
+	switch val := args[0].(type) {
 	case sexpr_atom:
 		if val != Nil {
 			return True, nil
@@ -307,8 +370,8 @@ func evalAtomQ(lst Sexpr) (Sexpr, error) {
 }
 
 // evalDefine is a macro; it does not evaluate all its arguments
-func evalDefine(lst Sexpr) (Sexpr, error) {
-	args, err := requireArgCount(lst, "define", 2)
+func evalDefine(lst Sexpr, ctx *evaluationStack) (Sexpr, sexpr_error) {
+	args, err := requireArgCount(lst, "define", 2, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -317,8 +380,12 @@ func evalDefine(lst Sexpr) (Sexpr, error) {
 	switch key := key.(type) {
 	case sexpr_atom:
 		// TODO:  Check further; let's not redefine Nil, for instance
-		val := Evaluate(args[1])
+		val, err := evaluateWithContext(args[1], ctx)
+		if err != nil {
+			return nil, err
+		}
 		log.Printf("DEFINE %q <-- %s", key, val)
+		rootSymbolTable[key] = val
 		return Nil, nil
 	default:
 		panic(fmt.Sprintf("Cannot define a non-symbol: %q", key))
