@@ -53,7 +53,7 @@ func TestEvaluateEqQ(t *testing.T) {
 			idx += 1
 		}
 		if idx != len(test.want) {
-			t.Error("Evaluate[%s] got %d results, want %d",
+			t.Errorf("Evaluate[%s] got %d results, want %d",
 				test.input, idx, len(test.want),
 			)
 		}
@@ -96,7 +96,7 @@ func TestEvaluateQuote(t *testing.T) {
 			idx += 1
 		}
 		if idx != len(test.want) {
-			t.Error("Evaluate[%s] got %d results, want %d",
+			t.Errorf("Evaluate[%s] got %d results, want %d",
 				test.input, idx, len(test.want),
 			)
 		}
@@ -144,7 +144,7 @@ func TestEvaluatorBinding(t *testing.T) {
 			idx += 1
 		}
 		if idx != len(test.want) {
-			t.Error("Evaluate[%s] got %d results, want %d",
+			t.Errorf("Evaluate[%s] got %d results, want %d",
 				test.input, idx, len(test.want),
 			)
 		}
