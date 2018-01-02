@@ -104,6 +104,54 @@ func TestEvaluateQuote(t *testing.T) {
 }
 
 func TestEvaluatorBinding(t *testing.T) {
+	var tests = []struct{
+		input string
+		want []Sexpr
+	} {
+		{
+			`
+(define a 1)
+(define b 2)
+(let ([a 3] [b 4]) (eq? 7 (+ a b)))
+`,
+			[]Sexpr{ Nil, Nil, True },
+		},
+		{ // Shadowing
+			`
+(define a 1)
+(define b 2)
+(let ([b 5]) (+ a b))
+`,
+			[]Sexpr{ Nil, Nil, mkAtomNumber("6") },
+		},
+		{
+			"(let ([a 3] [b 4]) (eq? 7 (+ a b)))",
+			[]Sexpr{ True },
+		},
+	}
+
+	for _, test := range tests {
+		resetEvaluationContext()
+		_, sexprs := Parse("test", mkRuneChannel(test.input))
+		idx := 0
+		for sx := range sexprs {
+			got := Evaluate(sx)
+			if !equalSexpr(got, test.want[idx]) {
+				t.Errorf("Evaluate[%s][#%d]=%v, want %v",
+					test.input, idx, got, test.want[idx],
+				)
+			}
+			idx += 1
+		}
+		if idx != len(test.want) {
+			t.Error("Evaluate[%s] got %d results, want %d",
+				test.input, idx, len(test.want),
+			)
+		}
+	}
+}
+
+func TestEvaluatorBinding2(t *testing.T) {
 	// Confirm we can clear values and that bindings work
 	resetEvaluationContext()
 	program1 := `

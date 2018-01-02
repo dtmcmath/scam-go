@@ -82,6 +82,7 @@ var primitiveStrings = []string {
 	"null?",
 	"atom?",
 	"define",
+	"let",
 }
 
 // An evaluator is a decorated S-expression (probably an Atom) that
