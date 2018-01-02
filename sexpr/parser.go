@@ -93,6 +93,13 @@ type parser struct {
 
 func (p *parser) emit(s Sexpr) {
 	if p.quoteIsActive {
+		// This logic is wrong and behind the bug
+		//
+		//   '(a b)
+		//
+		// It's not enough to know that the quote is active.  We need
+		// to know where in the stack it lies so it can wrap
+		// the right expression.
 		p.quoteIsActive = false
 		p.emit(consify([]Sexpr{mkAtomSymbol("quote"), s}))
 		return
