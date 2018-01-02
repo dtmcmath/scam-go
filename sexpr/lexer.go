@@ -311,9 +311,9 @@ func lexText(l *lexer) stateFn {
 			// if l.pos > l.start {
 			// 	l.emit(itemWhitespace)
 			// )
-		case r == '(':
+		case r == '(' || r == '[':
 			l.emit(itemLparen)
-		case r == ')':
+		case r == ')' || r == ']':
 			l.emit(itemRparen)
 		case r == ';':
 			return lexComment
