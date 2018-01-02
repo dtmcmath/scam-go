@@ -37,7 +37,32 @@ turned out that Mr. Pike was right.
 
 ## Installation
 
-(TODO)
+### Mac OS X
+
+Use Homebrew to install the latest version of Go (1.9 as of this writing). There are some prerequisities and some best practices. Here's the rundown:
+
+
+1. Install the latest XCode
+2. Install the XCode command line utilities (note: you may need to accept the license agreement for these to function)
+3. `brew update`
+4. `brew doctor` and correct any indicated issues
+5. `brew update` for good measure
+6. `brew install go`
+7. `go version` should execute and indicate appropriate version
+
+On Mac OS X, GOPATH environment variable is set to /Users/{username}. As a result, Go will be looking for packages included in your code someplace it is unlikely to find it. You might, on execution, see something like this:
+
+```
+scam.go:4:2: cannot find package "github.mheducation.com/dave-mcmath/scam/repl" in any of:
+	/usr/local/Cellar/go/1.9.2/libexec/src/github.mheducation.com/dave-mcmath/scam/repl (from $GOROOT)
+	/Users/andrewlippert/go/src/github.mheducation.com/dave-mcmath/scam/repl (from $GOPATH)
+	```
+
+Drop a symlink in the appropriate location, pointing at your repo location, and everything will be right with the world.
+
+You should now be able to successfully execute SCAM.
+
+(PC: TODO)
 
 ## Usage
 
