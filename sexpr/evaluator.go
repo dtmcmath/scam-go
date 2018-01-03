@@ -6,24 +6,23 @@ import (
 	"log"
 )
 
-var rootSymbolTable symbolTable // define always writes here
-var globalEvaluationContext evaluationStack
+var rootSymbolTable         symbolTable
+var globalEvaluationContext evaluationContext // define always writes here
 
 func init() {
 	resetEvaluationContext()
 }
 // reset the rootSymbolTable.  This is useful for testing!
 func resetEvaluationContext() {
-	ec := evaluationContext{
+	globalEvaluationContext = evaluationContext{
 		make(map[sexpr_atom]Sexpr),
 		nil,
 	}
-	rootSymbolTable = ec.sym
-	globalEvaluationContext = evaluationStack{&ec}
+	rootSymbolTable = globalEvaluationContext.sym
 }
 
 func Evaluate(s Sexpr) Sexpr {
-	if val, err := evaluateWithContext(s, globalEvaluationContext.head) ; err != nil {
+	if val, err := evaluateWithContext(s, &globalEvaluationContext) ; err != nil {
 		// The error is an S-expression, because it can Sprint!
 		return err
 		// // We should really do something more dramatic ("panic"?) but

@@ -44,38 +44,3 @@ func (e *evaluationContext) lookup(a sexpr_atom) (s Sexpr, ok bool) {
 	}
 	return val, ok
 }
-
-type evaluationStack struct{
-	head *evaluationContext
-}
-
-func (e *evaluationStack) dump() string {
-	ans := ""
-	depth := 0
-	for head := e.head ; head != nil ; {
-		ans += fmt.Sprintf("Depth %d:\n", depth)
-		ans += head.dump()
-		depth += 1
-		head = head.parent
-	}
-	return ans
-}
-
-func (e *evaluationStack) lookup(a sexpr_atom) (s Sexpr, ok bool) {
-	return e.head.lookup(a)
-}
-
-func (e *evaluationStack) push(sym symbolTable) *evaluationContext {
-	newHead := &evaluationContext{sym, e.head}
-	e.head = newHead
-	return newHead
-}
-
-func (e *evaluationStack) pop() error {
-	if e.head == nil {
-		return emptyStackError
-	}
-	// else
-	e.head = e.head.parent
-	return nil
-}
