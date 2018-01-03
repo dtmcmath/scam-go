@@ -439,6 +439,7 @@ func evalLet(lst Sexpr, ctx *evaluationStack) (Sexpr, sexpr_error) {
 		}
 	}
 	ctx.push(newBindings)
+	defer ctx.pop()
 	val, err := evaluateWithContext(args[1], ctx)
 	if err != nil {
 		return nil, err
