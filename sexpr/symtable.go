@@ -26,6 +26,25 @@ func (e *evaluationContext) dump() string {
 	return ans
 }
 
+func (e *evaluationContext) lookup(a sexpr_atom) (s Sexpr, ok bool) {
+	if e == nil {
+		return nil, false
+	}
+
+	ptr := e
+	val, ok := ptr.sym[a]
+	for !ok {
+		// Check the parent context
+		ptr = ptr.parent
+		if ptr == nil {
+			break
+		}
+		// else
+		val, ok = ptr.sym[a]
+	}
+	return val, ok
+}
+
 type evaluationStack struct{
 	head *evaluationContext
 }
@@ -43,22 +62,7 @@ func (e *evaluationStack) dump() string {
 }
 
 func (e *evaluationStack) lookup(a sexpr_atom) (s Sexpr, ok bool) {
-	if e.head == nil {
-		return nil, false
-	}
-	// else
-	head := e.head
-	val, ok := head.sym[a]
-	for !ok {
-		// Check the parent context
-		head = head.parent
-		if head == nil {
-			break
-		}
-		// else
-		val, ok = head.sym[a]
-	}
-	return val, ok
+	return e.head.lookup(a)
 }
 
 func (e *evaluationStack) push(sym symbolTable) *evaluationContext {
