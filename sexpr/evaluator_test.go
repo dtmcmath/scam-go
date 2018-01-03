@@ -128,6 +128,15 @@ func TestEvaluatorBinding(t *testing.T) {
 			"(let ([a 3] [b 4]) (eq? 7 (+ a b)))",
 			[]Sexpr{ True },
 		},
+		{ // Shadowing, no leaking
+			`
+(define a 1)
+(define b 2)
+(let ([b 5]) (+ a b))
+(+ a b)
+`,
+			[]Sexpr{ Nil, Nil, mkAtomNumber("6"), atomthree },
+		},
 	}
 
 	for _, test := range tests {
