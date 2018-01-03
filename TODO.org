@@ -13,6 +13,15 @@ done to make SCAM a thing of true beauty.
 
 ** Lex errors are very cryptic
 
+** "*define*" evaluates to =()=
+
+#+BEGIN_SRC scheme
+(null? (define a 1))
+#+END_SRC
+
+really ought to be nonsense; *define* isn't actually a term.  It's a
+macro, or something
+
 * Desiderata
 
 ** λ

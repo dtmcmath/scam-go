@@ -392,6 +392,8 @@ func evalDefine(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 			}
 		}
 		return Nil, nil
+		// TODO:  "nil" isn't "Nil"; define has no value
+		// return nil, nil
 	default:
 		return nil, evaluationError{
 			"let",
