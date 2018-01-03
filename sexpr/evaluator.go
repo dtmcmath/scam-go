@@ -380,20 +380,30 @@ func evalDefine(lst Sexpr, ctx *evaluationStack) (Sexpr, sexpr_error) {
 	key := args[0]
 	switch key := key.(type) {
 	case sexpr_atom:
-		// TODO:  Check further; let's not redefine Nil, nor any of
-		// the primitives, for instance.
-		// So key needs to be a non-primitive symbol.
-		// (if we _did_ accidentally redefine null?, the symbol-lookup
-		// wouldn't honor the request anyway, but we would create
-		// confusion and delay I'm sure)
-		val, err := evaluateWithContext(args[1], ctx)
-		if err != nil {
-			return nil, err
+		if key.typ == atomSymbol {
+			// TODO:  Check further; let's not redefine Nil, nor any of
+			// the primitives, for instance.
+			// So key needs to be a non-primitive symbol.
+			// (if we _did_ accidentally redefine null?, the symbol-lookup
+			// wouldn't honor the request anyway, but we would create
+			// confusion and delay I'm sure)
+			val, err := evaluateWithContext(args[1], ctx)
+			if err != nil {
+				return nil, err
+			}
+			log.Printf("DEFINE %q <-- %s", key, val)
+			rootSymbolTable[key] = val
+			return Nil, nil
+		} else {
+			return nil, evaluationError{
+				"let",
+				fmt.Sprintf("Cannot bind non-symbol %q", key),
+			}
 		}
-		log.Printf("DEFINE %q <-- %s", key, val)
-		rootSymbolTable[key] = val
-		return Nil, nil
 	default:
-		panic(fmt.Sprintf("Cannot define a non-symbol: %q", key))
+		return nil, evaluationError{
+			"let",
+			fmt.Sprintf("Cannot bind non-atom %q", key),
+		}
 	}
 }
