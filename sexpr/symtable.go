@@ -26,51 +26,21 @@ func (e *evaluationContext) dump() string {
 	return ans
 }
 
-type evaluationStack struct{
-	head *evaluationContext
-}
-
-func (e *evaluationStack) dump() string {
-	ans := ""
-	depth := 0
-	for head := e.head ; head != nil ; {
-		ans += fmt.Sprintf("Depth %d:\n", depth)
-		ans += head.dump()
-		depth += 1
-		head = head.parent
-	}
-	return ans
-}
-
-func (e *evaluationStack) lookup(a sexpr_atom) (s Sexpr, ok bool) {
-	if e.head == nil {
+func (e *evaluationContext) lookup(a sexpr_atom) (s Sexpr, ok bool) {
+	if e == nil {
 		return nil, false
 	}
-	// else
-	head := e.head
-	val, ok := head.sym[a]
+
+	ptr := e
+	val, ok := ptr.sym[a]
 	for !ok {
 		// Check the parent context
-		head = head.parent
-		if head == nil {
+		ptr = ptr.parent
+		if ptr == nil {
 			break
 		}
 		// else
-		val, ok = head.sym[a]
+		val, ok = ptr.sym[a]
 	}
 	return val, ok
-}
-
-func (e *evaluationStack) push(sym symbolTable) {
-	newHead := &evaluationContext{sym, e.head}
-	e.head = newHead
-}
-
-func (e *evaluationStack) pop() error {
-	if e.head == nil {
-		return emptyStackError
-	}
-	// else
-	e.head = e.head.parent
-	return nil
 }

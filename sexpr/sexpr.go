@@ -73,7 +73,7 @@ func (a sexpr_atom) String() string {
 	}
 }
 
-func (a sexpr_atom) evaluate(ctx *evaluationStack) (Sexpr, sexpr_error) {
+func (a sexpr_atom) evaluate(ctx *evaluationContext) (Sexpr, sexpr_error) {
 	switch a.typ {
 	case atomSymbol:
 		// The primitives are just themselves (for now)
