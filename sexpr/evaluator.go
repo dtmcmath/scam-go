@@ -6,7 +6,6 @@ import (
 	"log"
 )
 
-var rootSymbolTable         symbolTable
 var globalEvaluationContext evaluationContext // define always writes here
 
 func init() {
@@ -18,7 +17,6 @@ func resetEvaluationContext() {
 		make(map[sexpr_atom]Sexpr),
 		nil,
 	}
-	rootSymbolTable = globalEvaluationContext.sym
 }
 
 func Evaluate(s Sexpr) Sexpr {
@@ -381,26 +379,19 @@ func evalDefine(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 	key := args[0]
 	switch key := key.(type) {
 	case sexpr_atom:
-		if key.typ == atomSymbol {
-			// TODO:  Check further; let's not redefine Nil, nor any of
-			// the primitives, for instance.
-			// So key needs to be a non-primitive symbol.
-			// (if we _did_ accidentally redefine null?, the symbol-lookup
-			// wouldn't honor the request anyway, but we would create
-			// confusion and delay I'm sure)
-			val, err := evaluateWithContext(args[1], ctx)
-			if err != nil {
-				return nil, err
-			}
-			log.Printf("DEFINE %q <-- %s", key, val)
-			rootSymbolTable[key] = val
-			return Nil, nil
-		} else {
+		val, err := evaluateWithContext(args[1], ctx)
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("DEFINE %q <-- %s", key, val)
+		err2 := globalEvaluationContext.bind(key, val)
+		if err2 != nil {
 			return nil, evaluationError{
-				"let",
-				fmt.Sprintf("Cannot bind non-symbol %q", key),
+				"define(binding)",
+				err2.Error(),
 			}
 		}
+		return Nil, nil
 	default:
 		return nil, evaluationError{
 			"let",
@@ -419,8 +410,8 @@ func evalLet(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 	if err != nil {
 		return nil, err
 	}
-	newBindings := make(symbolTable)
 
+	newCtx := evaluationContext{make(symbolTable), ctx}
 	for _, b := range bindings {
 		log.Println("Create binding from", b)
 		kv, err := requireArgCount(b, "let(binding)", 2, nil)
@@ -429,15 +420,15 @@ func evalLet(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 		}
 		switch key := kv[0].(type) {
 		case sexpr_atom:
-			if key.typ == atomSymbol {
-				newBindings[key], err = evaluateWithContext(kv[1], ctx)
-				if err != nil {
-					return nil, err
-				}
-			} else {
+			val, err := evaluateWithContext(kv[1], ctx)
+			if err != nil {
+				return nil, err
+			}
+			err2 := newCtx.bind(key, val)
+			if err2 != nil {
 				return nil, evaluationError{
-					"let",
-					fmt.Sprintf("Cannot bind non-symbol %q", key),
+					"let(binding)",
+					err2.Error(),
 				}
 			}
 		default:
@@ -447,7 +438,6 @@ func evalLet(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 			}
 		}
 	}
-	newCtx := evaluationContext{newBindings, ctx}
 	val, err := evaluateWithContext(args[1], &newCtx)
 	if err != nil {
 		return nil, err

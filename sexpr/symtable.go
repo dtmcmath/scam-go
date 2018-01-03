@@ -1,6 +1,7 @@
 package sexpr
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -30,6 +31,21 @@ func (e *evaluationContext) dump_helper(depth int) string {
 		ans += "\n" + e.parent.dump_helper(1+depth)
 	}
 	return ans
+}
+
+func (e *evaluationContext) bind(key sexpr_atom, val Sexpr) error {
+	if key.typ != atomSymbol {
+		return errors.New(fmt.Sprintf("Cannot bind non-symbol %q", key))
+	}
+	// else
+	// TODO:  Check further; let's not bind Nil, nor any of
+	// the primitives, for instance.
+	// So key needs to be a non-primitive symbol.
+	// (if we _did_ accidentally redefine null?, the symbol-lookup
+	// wouldn't honor the request anyway, but we would create
+	// confusion and delay I'm sure)
+	e.sym[key] = val
+	return nil
 }
 
 func (e *evaluationContext) lookup(a sexpr_atom) (s Sexpr, ok bool) {
