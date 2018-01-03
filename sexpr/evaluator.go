@@ -130,6 +130,7 @@ func init() {
 	evaluators[atomPrimitives["null?"]] = evalNullQ
 	evaluators[atomPrimitives["atom?"]] = evalAtomQ
 	evaluators[atomPrimitives["define"]] = evalDefine
+	evaluators[atomPrimitives["let"]] = evalLet
 }
 
 /////
@@ -154,7 +155,8 @@ func requireArgCount(
 			context,
 			fmt.Sprintf("Strange arguments %q", lst),
 		}
-	} else if len(args) != required {
+	}
+	if required > 0 && len(args) != required {
 		// return nil, evaluationError{
 		// 	context: context,
 		// 	message: fmt.Sprintf("Incorrect argument count (%d) in call %s",
@@ -396,4 +398,50 @@ func evalDefine(lst Sexpr, ctx *evaluationStack) (Sexpr, sexpr_error) {
 	default:
 		panic(fmt.Sprintf("Cannot define a non-symbol: %q", key))
 	}
+}
+
+func evalLet(lst Sexpr, ctx *evaluationStack) (Sexpr, sexpr_error) {
+	args, err := requireArgCount(lst, "let", 2, nil)
+	if err != nil {
+		return nil, err
+	}
+	// else
+	bindings, err := requireArgCount(args[0], "let(prep)", -1, nil)
+	if err != nil {
+		return nil, err
+	}
+	newBindings := make(symbolTable)
+
+	for _, b := range bindings {
+		log.Println("Create binding from", b)
+		kv, err := requireArgCount(b, "let(binding)", 2, nil)
+		if err != nil {
+			return nil, err
+		}
+		switch key := kv[0].(type) {
+		case sexpr_atom:
+			if key.typ == atomSymbol {
+				newBindings[key], err = evaluateWithContext(kv[1], ctx)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				return nil, evaluationError{
+					"let",
+					fmt.Sprintf("Cannot bind non-symbol %q", key),
+				}
+			}
+		default:
+			return nil, evaluationError{
+				"let",
+				fmt.Sprintf("Cannot bind non-atom %q", key),
+			}
+		}
+	}
+	ctx.push(newBindings)
+	val, err := evaluateWithContext(args[1], ctx)
+	if err != nil {
+		return nil, err
+	}
+	return val, nil
 }

@@ -61,9 +61,10 @@ func (e *evaluationStack) lookup(a sexpr_atom) (s Sexpr, ok bool) {
 	return val, ok
 }
 
-func (e *evaluationStack) push(sym symbolTable) {
+func (e *evaluationStack) push(sym symbolTable) *evaluationContext {
 	newHead := &evaluationContext{sym, e.head}
 	e.head = newHead
+	return newHead
 }
 
 func (e *evaluationStack) pop() error {
