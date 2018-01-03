@@ -18,11 +18,17 @@ type evaluationContext struct{
 }
 
 func (e *evaluationContext) dump() string {
-	ans := "==========\n"
+	return e.dump_helper(0)
+}
+func (e *evaluationContext) dump_helper(depth int) string {
+	ans := fmt.Sprintf("== depth %02d ==\n", depth)
 	for key, val := range e.sym {
 		ans += fmt.Sprintf("val(%s)\t<--\t%s\n", key, val)
 	}
-	ans += "----------\n"
+	ans += "--------------"
+	if e.parent != nil {
+		ans += "\n" + e.parent.dump_helper(1+depth)
+	}
 	return ans
 }
 
