@@ -396,7 +396,7 @@ func evalDefine(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 		// return nil, nil
 	default:
 		return nil, evaluationError{
-			"let",
+			"define",
 			fmt.Sprintf("Cannot bind non-atom %q", key),
 		}
 	}
