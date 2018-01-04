@@ -73,14 +73,25 @@ func (a sexpr_atom) String() string {
 	}
 }
 
-func (a sexpr_atom) evaluate() Sexpr {
-	// TODO:  Actual lookup in the symbol table
+func (a sexpr_atom) evaluate(ctx *evaluationContext) (Sexpr, sexpr_error) {
 	switch a.typ {
 	case atomSymbol:
-		// log.Printf("Pretend we looked up the value for %s", a)
-		return a
+		// The primitives are just themselves (for now)
+		if _, ok := atomPrimitives[a.name] ; ok {
+			return a, nil
+		}
+		// else
+		if val, ok := ctx.lookup(a) ; !ok {
+			return nil, evaluationError{
+				"lookup",
+				fmt.Sprintf("Variable %s is not bound", a),
+			}
+		} else {
+			return val, nil
+		}
 	default:
-		return a
+		// Hrm.  This is probbably just right.
+		return a, nil
 	}
 }
 
@@ -90,6 +101,7 @@ var (
 	Nil sexpr_atom = sexpr_atom{atomNil, "nil"}
 	True sexpr_atom = sexpr_atom{atomBoolean, "t"}
 	False sexpr_atom = sexpr_atom{atomBoolean, "f"}
+	Quote sexpr_atom = mkAtomSymbol("quote")
 )
 // TODO:  Different string representations of the same number are
 // different atoms; are they comparable?
@@ -209,16 +221,6 @@ func (c sexpr_cons) Sprint() (string, error) {
 func (c sexpr_cons) String() string {
 	// TODO:  This will barf if c itself has a loop
 	return fmt.Sprintf("Cons(%s, %s)", c.car, c.cdr)
-}
-
-// A special kind of S-expression is the "error".  I think we're going
-// to need it, but I haven't figured out quite where yet.
-type sexpr_error struct {
-	context string
-	message string
-}
-func (e sexpr_error) Sprint() (string, error) {
-	return fmt.Sprintf("(ERROR %s %q)", e.context, e.message), nil
 }
 
 // A Sexpr includes sexpr_atom and sexpr_cons.  It's a discriminated union

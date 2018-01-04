@@ -21,6 +21,7 @@ func (a sexpr_parse_artifact) Sprint() (string, error) {
 var (
 	emptyStackError error = errors.New("Pop from an empty stack")
 	markerLPAREN sexpr_parse_artifact = sexpr_parse_artifact{"LPAREN"}
+	markerQUOTE  sexpr_parse_artifact = sexpr_parse_artifact{"QUOTE"}
 )
 
 type nodeOfSexprs struct {
@@ -45,6 +46,21 @@ func (s *stackOfSexprs) pop() (Sexpr, error) {
 	top := s.head
 	s.head = s.head.next
 	return top.val, nil
+}
+func (s *stackOfSexprs) mustPop() Sexpr {
+	ans, err := s.pop()
+	if err != nil { panic(err) }
+	return ans
+}
+// peek looks at the top Sexpr.  If the stack is empty, just return
+// nil (instead of throwing an error), which is different than Nil, so
+// that's not ambigious
+func (s *stackOfSexprs) peek() Sexpr {
+	if s.head == nil {
+		return nil
+	}
+	// else
+	return s.head.val
 }
 // popUntil removes elements from HEAD until reaching an object that
 // equals (==) the marker.  It returns an array of S-expressions
@@ -88,14 +104,13 @@ type parser struct {
 	sexprs chan Sexpr
 	// State-type things
 	stack *stackOfSexprs
-	quoteIsActive bool
 }
 
 func (p *parser) emit(s Sexpr) {
-	if p.quoteIsActive {
-		p.quoteIsActive = false
-		p.emit(consify([]Sexpr{mkAtomSymbol("quote"), s}))
-		return
+	top := p.stack.peek()
+	if top == markerQUOTE {
+		p.stack.mustPop()
+		s = mkList(Quote, s)
 	}
 	if p.stack.head == nil {
 		// There is no context to roll up; we have a "final" S-expression
@@ -151,9 +166,10 @@ func (p *parser) run() {
 				return
 			}
 			// else
-			// TODO:  If a "dot" is in play, we have something different
 			s := consify(slist)
 			p.emit(s)
+		case itemSingleQuote:
+			p.stack.push(markerQUOTE)
 		case itemNumber:
 			p.emit(mkAtomNumber(tok.val))
 		case itemSymbol:
@@ -165,15 +181,6 @@ func (p *parser) run() {
 			default:
 				p.paniqf("Illegal boolean token %v", tok)
 			}
-		case itemSingleQuote:
-			// 'x is shorthand for (quote x)
-			// '(1 2 3) is shorthand for (quote (1 2 3))
-			// '() is shorthand for (quote ())
-			if p.quoteIsActive {
-				p.paniqf("Unexpected ' inside a quotation")
-				return
-			}
-			p.quoteIsActive = true
 		case itemQuotationMark, itemDot:
 			p.unsupportedf("We aren't ready for '%s' yet", tok)
 			return

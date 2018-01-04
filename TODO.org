@@ -11,22 +11,18 @@ done to make SCAM a thing of true beauty.
 
 * Issues
 
-** Non-integer arithmetic is impossible
-
-Should =(eq? 3 3.0)= be =#t= or =#f=?  As of now, the lexer tries to
-understand floating point numbers, but the evaluator for =+= only
-works on integers.
-
-Since SCAM isn't really a calculator, this is a low-priority issue.
-
 ** Lex errors are very cryptic
 
+** "*define*" evaluates to =()=
+
+#+BEGIN_SRC scheme
+(null? (define a 1))
+#+END_SRC
+
+really ought to be nonsense; *define* isn't actually a term.  It's a
+macro, or something
+
 * Desiderata
-
-** Symbol tables
-
-To define keywords *define* and *let*, we need symbol tables into
-which to put those values
 
 ** λ
 
@@ -49,10 +45,13 @@ I really want a keyword "*lambda*".  With that, we could define
 (define cdr (lambda (c) (c 'cdr)))
 #+END_SRC
 
-** Separate parse errors from evaluation errors
+** INPROGRESS Separate parse errors from evaluation errors
 
 I need to read more about what an "error" S-expression looks like.
 Right now, they just look like pretty generic Go structs.
+
+The evaluator's errors look quite a lot like those from
+[[https://cisco.github.io/ChezScheme/][Chez Scheme]] (because I copied them).  Parse errors are still a mess
 
 ** Bignums
 
@@ -64,6 +63,30 @@ Don't you wonder what
 #+END_SRC
 
 is?
+
+** Remove "error" from Sexpr Sprint signature
+
+I think there aren't any more unprintable S-expressions, so let's just
+outlaw them.
+
+#+BEGIN_SRC go
+type Sexpr interface{
+	Sprint() string
+}
+#+END_SRC
+
+has a nice ring to it.
+
+** Implement (more) keywords
+
+- *begin*
+- *pair?*
+- *lambda*
+
+So that we can retire
+
+- *atom?*
+- ...
 
 * Roadmap
 
