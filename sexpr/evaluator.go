@@ -97,15 +97,15 @@ type evaluationError struct{
 // interface (sexpr_error) in method signatures.
 type sexpr_error interface{
 	Error() string
-	Sprint() (string, error)
+	Sprint() string
 }
 func (e evaluationError) Error() string {
 	return fmt.Sprintf("Exception in %s: %s", e.context, e.message)
 }
-func (e evaluationError) Sprint() (string, error) {
+func (e evaluationError) Sprint() string {
 	// Implement this method if we want an evaluation error to look
 	// like an S-expression
-	return e.Error(), nil
+	return e.Error()
 }
 
 // Pre-make all the primitive symbols.  Maybe these need to be their
