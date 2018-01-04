@@ -56,6 +56,10 @@ func TestSimpleParse(t *testing.T) {
 				mkList(primcons, mkList(primquote, atomone), Nil),
 			},
 		},
+		{
+			"'(#t)",
+			[]Sexpr{mkList(Quote, mkList(True))},
+		},
 		// {
 		// 	"(eq? (car (cons 1 2)) 1)",
 		// 	// Bleh.  I've lost track!!!
