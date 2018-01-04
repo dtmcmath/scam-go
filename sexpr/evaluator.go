@@ -2,8 +2,8 @@ package sexpr
 
 import (
 	"fmt"
+	// "log"
 	"strconv"
-	"log"
 )
 
 var globalEvaluationContext evaluationContext // define always writes here
@@ -52,7 +52,6 @@ func evaluateWithContext(s Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 			}
 		}
 		// else
-		log.Printf("Evaluating a generic 'cons': %q", s)
 		if cdr, err := evaluateWithContext(s.cdr, ctx) ; err != nil {
 			return nil, err
 		} else {
@@ -383,7 +382,7 @@ func evalDefine(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("DEFINE %q <-- %s", key, val)
+		// log.Printf("DEFINE %q <-- %s", key, val)
 		err2 := globalEvaluationContext.bind(key, val)
 		if err2 != nil {
 			return nil, evaluationError{
@@ -415,7 +414,7 @@ func evalLet(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 
 	newCtx := evaluationContext{make(symbolTable), ctx}
 	for _, b := range bindings {
-		log.Println("Create binding from", b)
+		// log.Println("Create binding from", b)
 		kv, err := requireArgCount(b, "let(binding)", 2, nil)
 		if err != nil {
 			return nil, err
