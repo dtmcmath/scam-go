@@ -76,9 +76,16 @@ var primitiveStrings = []string {
 	"eq?",
 	"quote",
 	"null?",
-	"atom?",
+	"atom?", // non-primitive, soon
 	"define",
 	"let",
+	"pair?",
+	"lambda",
+	"and",
+	"or",
+	"if",
+	"cond",
+	"else",
 }
 
 // An evaluator is a decorated S-expression (probably an Atom) that
