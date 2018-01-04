@@ -243,8 +243,8 @@ func ExampleEvaluatorBinding() {
 	_, sexprs := Parse("test", mkRuneChannel(program))
 	for sx := range sexprs {
 		val := Evaluate(sx)
-		in, _ := Sprint(sx)
-		out, _ := Sprint(val)
+		in := Sprint(sx)
+		out := Sprint(val)
 		fmt.Printf("> %s\n%s\n", in, out)
 	}
 	// Output:

@@ -64,19 +64,6 @@ Don't you wonder what
 
 is?
 
-** Remove "error" from Sexpr Sprint signature
-
-I think there aren't any more unprintable S-expressions, so let's just
-outlaw them.
-
-#+BEGIN_SRC go
-type Sexpr interface{
-	Sprint() string
-}
-#+END_SRC
-
-has a nice ring to it.
-
 ** Implement (more) keywords
 
 - *begin*

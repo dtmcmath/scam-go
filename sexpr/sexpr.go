@@ -24,21 +24,21 @@ type sexpr_atom struct {
 	name string
 }
 
-func (a sexpr_atom) Sprint() (string, error) {
+func (a sexpr_atom) Sprint() string {
 	switch a.typ {
-	case atomNil:   return "()", nil
+	case atomNil:   return "()"
 	case atomBoolean:
 		switch a {
-		case True:  return "#t", nil
-		case False: return "#f", nil
+		case True:  return "#t"
+		case False: return "#f"
 		default:
 			panic(fmt.Sprintf("The faux boolean atom %+v", a))
 		}
 	case atomNumber, atomSymbol:
-		return a.name, nil
+		return a.name
 	default:
 		msg := fmt.Sprintf("Unprintable atom of type %q: %s", a.typ, a)
-		return "", errors.New(msg)
+		panic(msg)
 	}
 }
 
@@ -176,46 +176,29 @@ func getCddr(s Sexpr) (Sexpr, error) {
 	}
 }
 
-func (c sexpr_cons) Sprint() (string, error) {
+func (c sexpr_cons) Sprint() string {
 	str := "("
 
 	for ptr := c ; ; {
-		switch car := ptr.car.(type) {
-		case sexpr_atom, sexpr_cons:
-			if scar, err := car.Sprint() ; err != nil {
-				msg := fmt.Sprintf("Unprintable CAR %q: %s", car, err.Error())
-				return "", errors.New(msg)
-			} else {
-				str += scar
-			}
-		default:
-			msg := fmt.Sprintf("Unprintable CAR %q", car)
-			return "", errors.New(msg)
-		}
+		str += ptr.car.Sprint()
 
 		switch cdr := ptr.cdr.(type) {
 		case sexpr_atom:
 			if cdr == Nil {
-				str += ")"
+				return str + ")"
 			} else {
-				if scdr, err := cdr.Sprint() ; err != nil {
-					msg := fmt.Sprintf("Unprintable CDR %q: %s", cdr, err.Error())
-					return "", errors.New(msg)
-				} else {
-					str += fmt.Sprintf(" . %s)", scdr)
-				}
+				return str + fmt.Sprintf(" . %s)", cdr.Sprint())
 			}
-			return str, nil
 		case sexpr_cons:
 			str += " "
 			ptr = cdr
 			// and loop around agian
 		default:
 			msg := fmt.Sprintf("Unprintable CDR %q", cdr)
-			return "", errors.New(msg)
+			panic(msg)
 		}
 	}
-	return str, nil
+	return str
 }
 
 func (c sexpr_cons) String() string {
@@ -225,10 +208,10 @@ func (c sexpr_cons) String() string {
 
 // A Sexpr includes sexpr_atom and sexpr_cons.  It's a discriminated union
 type Sexpr interface{
-	Sprint() (string, error)
+	Sprint() string
 }
 
-func Sprint(s Sexpr) (string, error) {
+func Sprint(s Sexpr) string {
 	return s.Sprint()
 }
 
@@ -236,11 +219,7 @@ func Sprint(s Sexpr) (string, error) {
 // writer.  It returns the number of bytes written and any write-error
 // encountered.
 func Fprint(out io.Writer, s Sexpr) (n int, err error) {
-	if str, err := Sprint(s) ; err != nil {
-		return 0, err
-	} else {
-		return fmt.Fprint(out, str)
-	}
+	return fmt.Fprint(out, Sprint(s))
 }
 
 func Print(s Sexpr) (n int, err error) {

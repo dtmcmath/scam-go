@@ -13,9 +13,9 @@ import (
 type sexpr_parse_artifact struct{
 	name string
 }
-func (a sexpr_parse_artifact) Sprint() (string, error) {
+func (a sexpr_parse_artifact) Sprint() string {
 	msg := fmt.Sprintf("Never try to print this artifact: %q", a.name)
-	return "", errors.New(msg)
+	panic(msg)
 }
 
 var (

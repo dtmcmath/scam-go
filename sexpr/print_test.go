@@ -26,11 +26,7 @@ func TestPrint(t *testing.T) {
 		idx := 0
 		for sx := range sexprs {
 			val := Evaluate(sx)
-			if got, err := Sprint(val) ; err != nil {
-				t.Errorf("Print %q gave error %v",
-					test.input, err,
-				)
-			} else if got != test.want[idx] {
+			if got := Sprint(val) ; got != test.want[idx] {
 				t.Errorf("Print %q[%d]=%v, want %v",
 					test.input, idx, got, test.want[idx],
 				)
