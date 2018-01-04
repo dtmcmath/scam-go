@@ -394,7 +394,8 @@ func lexBoolean(l *lexer) stateFn {
 	}
 	// else
 	peek := l.peek()
-	if !(unicode.IsSpace(peek) || peek == eof) {
+	if !(unicode.IsSpace(peek) || peek == eof ||
+		peek == ')' || peek == ']') {
 		return l.errorf("Unrecognized boolean %q",
 			l.input[-1+l.start:1+l.pos])
 	}
