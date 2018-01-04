@@ -14,8 +14,7 @@ type sexpr_parse_artifact struct{
 	name string
 }
 func (a sexpr_parse_artifact) Sprint() string {
-	msg := fmt.Sprintf("Never try to print this artifact: %q", a.name)
-	panic(msg)
+	return fmt.Sprintf("MARKER(%s)", a.name)
 }
 
 var (
@@ -24,44 +23,59 @@ var (
 	markerQUOTE  sexpr_parse_artifact = sexpr_parse_artifact{"QUOTE"}
 )
 
-type nodeOfSexprs struct {
-	val Sexpr
-	next *nodeOfSexprs
-}
 type stackOfSexprs struct {
-	head *nodeOfSexprs
-}
-func (n nodeOfSexprs) String() string {
-	return fmt.Sprintf("%s", n.val)
+	val Sexpr
+	next *stackOfSexprs
 }
 
-func (s *stackOfSexprs) push(l Sexpr) {
-	s.head = &nodeOfSexprs{l, s.head}
+func (s stackOfSexprs) String() string {
+	var stack []string
+	for cur := &s ; cur != nil ; cur = cur.next {
+		stack = append([]string{fmt.Sprintf("%s", cur.val)}, stack...)
+	}
+	return strings.Join(stack, " <-- ")
 }
-func (s *stackOfSexprs) pop() (Sexpr, error) {
-	if s.head == nil {
+
+type parser struct {
+	name string
+	lex *lexer
+	items <-chan item
+	sexprs chan Sexpr
+	// State-type things
+	stack *stackOfSexprs
+}
+
+// stack managment tools
+func (p *parser) pushStack(l Sexpr) {
+	p.stack = &stackOfSexprs{l, p.stack}
+}
+func (p *parser) popStack() (Sexpr, error) {
+	if p.stack == nil {
 		return nil, emptyStackError
 	}
 	// else
-	top := s.head
-	s.head = s.head.next
+	top := p.stack
+	p.stack = p.stack.next
 	return top.val, nil
 }
-func (s *stackOfSexprs) mustPop() Sexpr {
-	ans, err := s.pop()
+func (p *parser) mustPopStack() Sexpr {
+	ans, err := p.popStack()
 	if err != nil { panic(err) }
 	return ans
 }
 // peek looks at the top Sexpr.  If the stack is empty, just return
 // nil (instead of throwing an error), which is different than Nil, so
 // that's not ambigious
-func (s *stackOfSexprs) peek() Sexpr {
-	if s.head == nil {
+func (p *parser) peekStack() Sexpr {
+	if p.stack == nil {
 		return nil
 	}
 	// else
-	return s.head.val
+	return p.stack.val
 }
+
+// parse qua parse tools
+
 // popUntil removes elements from HEAD until reaching an object that
 // equals (==) the marker.  It returns an array of S-expressions
 // removed.  That array is reversed with respect to the order popped.
@@ -74,10 +88,10 @@ func (s *stackOfSexprs) peek() Sexpr {
 //   {z, y, x}
 //
 // If no marker is found, an error is returned.
-func (s *stackOfSexprs) popUntil(marker Sexpr) ([]Sexpr, error) {
+func (p *parser) popStackUntil(marker Sexpr) ([]Sexpr, error) {
 	var acc []Sexpr
 	for {
-		head, err := s.pop()
+		head, err := p.popStack()
 		if err == emptyStackError {
 			return nil,  errors.New(fmt.Sprintf("popUntil(%s) from a stack with no %q", marker, marker))
 		} else if err != nil {
@@ -89,34 +103,18 @@ func (s *stackOfSexprs) popUntil(marker Sexpr) ([]Sexpr, error) {
 		}
 	}
 }
-func (s stackOfSexprs) String() string {
-	if s.head == nil {
-		return "<empty>"
-	}
-	// else
-	return fmt.Sprintf("%s --> %s", s.head.val, s.head.next)
-}
-
-type parser struct {
-	name string
-	lex *lexer
-	items <-chan item
-	sexprs chan Sexpr
-	// State-type things
-	stack *stackOfSexprs
-}
 
 func (p *parser) emit(s Sexpr) {
-	top := p.stack.peek()
+	top := p.peekStack()
 	if top == markerQUOTE {
-		p.stack.mustPop()
+		p.mustPopStack()
 		s = mkList(Quote, s)
 	}
-	if p.stack.head == nil {
+	if p.stack == nil {
 		// There is no context to roll up; we have a "final" S-expression
 		p.sexprs <- s
 	} else {
-		p.stack.push(s)
+		p.pushStack(s)
 	}
 }
 
@@ -139,7 +137,7 @@ func Parse(name string, input <-chan rune) (*parser, <-chan Sexpr) {
 	p := &parser{
 		name: name,
 		sexprs: make(chan Sexpr),
-		stack: &stackOfSexprs{nil},
+		stack: nil,
 	}
 	p.lex, p.items = lex("lexer_"+name, input)
 	go p.run()
@@ -153,14 +151,14 @@ func (p *parser) run() {
 		switch tok.typ {
 		case itemEOF:
 			// If there's something on the stack, we have a problem
-			if p.stack.head != nil {
+			if p.peekStack() != nil {
 				p.paniqf("Unexpected EOF")
 			}
 			return
 		case itemLparen:
-			p.stack.push(markerLPAREN)
+			p.pushStack(markerLPAREN)
 		case itemRparen:
-			slist, err := p.stack.popUntil(markerLPAREN)
+			slist, err := p.popStackUntil(markerLPAREN)
 			if err != nil {
 				p.paniqf(err.Error())
 				return
@@ -169,7 +167,7 @@ func (p *parser) run() {
 			s := consify(slist)
 			p.emit(s)
 		case itemSingleQuote:
-			p.stack.push(markerQUOTE)
+			p.pushStack(markerQUOTE)
 		case itemNumber:
 			p.emit(mkAtomNumber(tok.val))
 		case itemSymbol:
