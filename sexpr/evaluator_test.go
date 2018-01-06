@@ -33,6 +33,20 @@ func TestEvaluateArithmetic(t *testing.T) {
 	}
 }
 
+func ExampleArithmetic() {
+	s := "(- 3 2 1)"
+
+	_, ch := Parse("repl", mkRuneChannel(s))
+	for sx := range ch {
+		fmt.Println("Evaluating", sx.Sprint())
+		val := Evaluate(sx)
+		fmt.Println("gave", val)
+	}
+	// Output:
+	// Evaluating (- 3 2 1)
+	// gave Exception in -: Expected 2 arguments, got 3
+}
+
 func TestEvaluateEqQ(t *testing.T) {
 	var tests = []struct{
 		input string

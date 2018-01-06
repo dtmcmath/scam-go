@@ -120,6 +120,10 @@ var primitiveFunctions = map[string]applicator {
 // its arguments after they've been evaluated.
 func mkNaryFn(name string, n int, fn func([]Sexpr) (Sexpr, sexpr_error)) applicator {
 	return func(args []Sexpr) (Sexpr, sexpr_error) {
+		if len(args) != n {
+			msg := fmt.Sprintf("Expected %d arguments, got %d", n, len(args))
+			return nil, evaluationError{name, msg}
+		}
 		ans, err := fn(args)
 		if err != nil {
 			// divide-by-zero, for instance
