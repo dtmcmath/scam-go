@@ -105,6 +105,16 @@ var primitiveFunctions = map[string]applicator {
 			return False, nil
 		}
 	}),
+	"number?":  mkNaryFn("pair?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
+		switch a := args[0].(type) {
+		case sexpr_atom:
+			if a.typ == atomNumber {
+				return True, nil
+			}
+		}
+		// else
+		return False, nil
+	}),
 }
 /////
 // Helpers
