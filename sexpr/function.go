@@ -196,69 +196,105 @@ func (i intOrFloat) String() string {
 func mkArithmeticReduce(
 	name string,
 	acc intOrFloat,
-	reducer func(acc intOrFloat, val Sexpr) (intOrFloat, sexpr_error, bool),
+	reducer arithmeticReducerFunction,
 ) applicator {
 	return func(args []Sexpr) (Sexpr, sexpr_error) {
-		ans := acc
-		var ( // Declare outside the loop, else ans is shadowed
-			err sexpr_error
-			done bool
-		)
+		ans := acc // makes a copy!
 		for _, val := range args {
-			if ans, err, done = reducer(ans, val) ; done {
+			if err, done := reducer(&ans, val) ; done {
 				break
 			} else if err != nil {
 				// Like, "divide by zero" or "incompatible types"
 				return nil, evaluationError{name, err.Error()}
 			}
 		}
-		if err != nil {
-			// Pretend the reducer's error is our error.
-			err = evaluationError{name, err.Error()}
-		}
-		return mkAtomNumber(fmt.Sprintf("%s", ans)), err
+		return mkAtomNumber(fmt.Sprintf("%s", ans)), nil
 	}
 }
 
-func reducePlus(acc intOrFloat, summand Sexpr) (intOrFloat, sexpr_error, bool) {
-	switch summand := summand.(type) {
-	case sexpr_atom:
-		if summand.typ == atomNumber {
-			if acc.isInt {
-				val, err := strconv.ParseInt(summand.name, 10, 64)
-				if err != nil {
-					// Time to give up on the idea that we have an int.
-					acc.isInt = false
-					acc.asfloat = float64(acc.asint)
-				} else {
-					acc.asint += val
-					return acc, nil, false
-				}
-			}
-			// NOT else; isInt might have changed!
-			if !acc.isInt {
-				val, err := strconv.ParseFloat(summand.name, 64)
-				if err != nil {
-					return acc, // should be ignored; can't be nil
-					evaluationError{
-						"",
-						fmt.Sprintf("%s masquerades as a Number!!", summand),
-					},
-					true
-				} else {
-					acc.asfloat += val
-					return acc, nil, false
-				}
-			}
+type arithmeticReducerFunction func(*intOrFloat, Sexpr) (sexpr_error, bool)
+
+func mkArithmeticReducerFunction(
+	inter func(int64, int64) (int64, error),
+	floater func(float64, float64) (float64, error),
+) arithmeticReducerFunction {
+
+	asIntHandler := func(acc *intOrFloat, x sexpr_atom) error {
+		if !acc.isInt {
+			// This is not the accumulator you're looking for
+			return nil
+		}
+		// else, let's try
+		val, parseErr := strconv.ParseInt(x.name, 10, 64)
+		if parseErr != nil {
+			// Time to give up on the idea that we have an int.
+			acc.isInt = false
+			acc.asfloat = float64(acc.asint)
+			/// and continue
+			return nil
+		}
+		// else
+		if nxt, err := inter(acc.asint, val) ; err != nil {
+			// an arithmetic error; fatal
+			return err
+		} else {
+			acc.asint = nxt
+			return nil
 		}
 	}
-	// else, it's either a non-atom or a non-number atom
-	return acc, evaluationError{
-		"",
-		fmt.Sprintf("%s is not a number", summand),
-	},
-	true
+	asFloatHandler := func(acc *intOrFloat, x sexpr_atom) error {
+		if acc.isInt {
+			return nil
+		}
+		// else
+		val, err := strconv.ParseFloat(x.name, 64)
+		if err != nil {
+			return err
+		}
+		if nxt, err := floater(acc.asfloat, val) ; err != nil {
+			// an arithmetic error; fatal
+			return err
+		} else {
+			// else
+			log.Printf("...made %f\n", nxt)
+			acc.asfloat = nxt
+			return nil
+		}
+	}
+
+	return func(acc *intOrFloat, x Sexpr) (sexpr_error, bool) {
+		switch x := x.(type) {
+		case sexpr_atom:
+			if x.typ == atomNumber {
+				// If acc is already a float, asIntHandler is a no-op.
+				// If acc is still an int, asIntHandler might turn it
+				// into a float.
+				// Either way, try asIntHandler.
+				// Then try asFloatHandler; if acc is still an int by
+				// then, it's a no-op, otherwise it's the right thing.
+				if err := asIntHandler(acc, x); err != nil {
+					return evaluationError{"int", err.Error()}, true
+				}
+				if err := asFloatHandler(acc, x) ; err != nil {
+					return evaluationError{"float", err.Error()}, true
+				}
+				// else... we computed, and can contiune accumulating.
+				return nil, false
+			}
+		}
+		// else, it's either a non-atom or a non-number atom
+		return evaluationError{
+			"",
+			fmt.Sprintf("%s is not a number", x),
+		},
+		true
+	}
 }
+
+var reducePlus = mkArithmeticReducerFunction(
+	func(x int64, y int64) (int64, error) { return x+y, nil },
+	func(x float64, y float64) (float64, error) { return x+y, nil },
+)
 
 // evalQuote is a macro; it does not evaluate all its arguments
 func evalQuote(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {

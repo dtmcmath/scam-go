@@ -19,6 +19,10 @@ func TestEvaluateArithmetic(t *testing.T) {
 			"(+ 1 3.141593)",
 			[]Sexpr{ mkAtomNumber("4.141593") },
 		},
+		{
+			"(+ 2.718281 3.141593)",
+			[]Sexpr{ mkAtomNumber("5.859874") },
+		},
 		{ "(+ 1 2 3 4 5)", []Sexpr{ mkAtomNumber("15") } },
 		{ "(- 5 2)", []Sexpr{ atomthree } },
 	}
