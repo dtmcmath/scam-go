@@ -3,6 +3,7 @@ package sexpr
 import (
 	"strconv"
 	"fmt"
+	"errors"
 )
 
 // Functions are first class objects.  The file defines operations
@@ -66,16 +67,8 @@ func mkTodoApplicator(s string) applicator {
 }
 
 var primitiveFunctions = map[string]applicator {
-	"-":      mkTodoApplicator("-"),
-	"+":      mkArithmeticReduce(
-		"+",
-		intOrFloat{
-			asint: 0,
-			asfloat: 0,
-			isInt: true,
-		},
-		reducePlus,
-	),
+	"-":      mkNaryFn("-", 2, fnMinus),
+	"+":      mkArithmeticReduce("+", zeroIntOrFloat, reducePlus),
 	"cons":   mkNaryFn("cons", 2, func(args []Sexpr) (Sexpr, sexpr_error) {
 		return mkCons(args[0], args[1]), nil
 	}),
@@ -185,6 +178,38 @@ type intOrFloat struct{
 	isInt   bool
 }
 
+var zeroIntOrFloat = intOrFloat{0, 0.0, true}
+
+func parseIntOrFloat(s Sexpr) (*intOrFloat, error) {
+	var numberString string
+	switch s := s.(type) {
+	case sexpr_atom:
+		if s.typ != atomNumber {
+			msg := fmt.Sprintf("Atom %q is not a number", s)
+			return nil, errors.New(msg)
+		} else {
+			numberString = s.name
+		}
+	default:
+		msg := fmt.Sprintf("%q is not a number", s)
+		return nil, errors.New(msg)
+	}
+	// else, numberString is the thing to parse
+	ival, err := strconv.ParseInt(numberString, 10, 64)
+	if err == nil {
+		// It's an integer
+		return &intOrFloat{ival, float64(ival), true}, nil
+	}
+	// else
+	fval, err := strconv.ParseFloat(numberString, 64)
+	if err == nil {
+		// It's a float; the integer part is irrelevant
+		return &intOrFloat{0, fval, false}, nil
+	} else {
+		return nil, err
+	}
+}
+
 func (i intOrFloat) String() string {
 	if i.isInt {
 		return fmt.Sprintf("%d", i.asint)
@@ -192,109 +217,65 @@ func (i intOrFloat) String() string {
 		return fmt.Sprintf("%f", i.asfloat)
 	}
 }
+func (i intOrFloat) Sexprize() Sexpr {
+	return mkAtomNumber(fmt.Sprintf("%s", i))
+}
+
+// add m to n, destructively modifying n.  Like +=
+func (n *intOrFloat) increaseBy(m intOrFloat) {
+	n.asint   += m.asint
+	n.asfloat += m.asfloat
+	if n.isInt {
+		n.isInt = m.isInt
+	}
+}
+// subtract m from n, destructively modifying n.  Like -=
+func (n *intOrFloat) decreaseBy(m intOrFloat) {
+	n.asint   -= m.asint
+	n.asfloat -= m.asfloat
+	if n.isInt {
+		n.isInt = m.isInt
+	}
+}
+
+type arithmeticReducerFunction func(*intOrFloat, intOrFloat)
 
 func mkArithmeticReduce(
 	name string,
-	acc intOrFloat,
+	starter intOrFloat,
 	reducer arithmeticReducerFunction,
 ) applicator {
 	return func(args []Sexpr) (Sexpr, sexpr_error) {
-		ans := acc // makes a copy!
+		acc := starter // makes a copy!
 		for _, val := range args {
-			if err, done := reducer(&ans, val) ; done {
-				break
-			} else if err != nil {
-				// Like, "divide by zero" or "incompatible types"
+			iorf, err := parseIntOrFloat(val)
+			if err != nil {
 				return nil, evaluationError{name, err.Error()}
 			}
+			// else, destructively modify the accumulator
+			reducer(&acc, *iorf)
 		}
-		return mkAtomNumber(fmt.Sprintf("%s", ans)), nil
+		return acc.Sexprize(), nil
 	}
 }
 
-type arithmeticReducerFunction func(*intOrFloat, Sexpr) (sexpr_error, bool)
-
-func mkArithmeticReducerFunction(
-	inter func(int64, int64) (int64, error),
-	floater func(float64, float64) (float64, error),
-) arithmeticReducerFunction {
-
-	asIntHandler := func(acc *intOrFloat, x sexpr_atom) error {
-		if !acc.isInt {
-			// This is not the accumulator you're looking for
-			return nil
-		}
-		// else, let's try
-		val, parseErr := strconv.ParseInt(x.name, 10, 64)
-		if parseErr != nil {
-			// Time to give up on the idea that we have an int.
-			acc.isInt = false
-			acc.asfloat = float64(acc.asint)
-			/// and continue
-			return nil
-		}
-		// else
-		if nxt, err := inter(acc.asint, val) ; err != nil {
-			// an arithmetic error; fatal
-			return err
-		} else {
-			acc.asint = nxt
-			return nil
-		}
-	}
-	asFloatHandler := func(acc *intOrFloat, x sexpr_atom) error {
-		if acc.isInt {
-			return nil
-		}
-		// else
-		val, err := strconv.ParseFloat(x.name, 64)
-		if err != nil {
-			return err
-		}
-		if nxt, err := floater(acc.asfloat, val) ; err != nil {
-			// an arithmetic error; fatal
-			return err
-		} else {
-			// else
-			log.Printf("...made %f\n", nxt)
-			acc.asfloat = nxt
-			return nil
-		}
-	}
-
-	return func(acc *intOrFloat, x Sexpr) (sexpr_error, bool) {
-		switch x := x.(type) {
-		case sexpr_atom:
-			if x.typ == atomNumber {
-				// If acc is already a float, asIntHandler is a no-op.
-				// If acc is still an int, asIntHandler might turn it
-				// into a float.
-				// Either way, try asIntHandler.
-				// Then try asFloatHandler; if acc is still an int by
-				// then, it's a no-op, otherwise it's the right thing.
-				if err := asIntHandler(acc, x); err != nil {
-					return evaluationError{"int", err.Error()}, true
-				}
-				if err := asFloatHandler(acc, x) ; err != nil {
-					return evaluationError{"float", err.Error()}, true
-				}
-				// else... we computed, and can contiune accumulating.
-				return nil, false
-			}
-		}
-		// else, it's either a non-atom or a non-number atom
-		return evaluationError{
-			"",
-			fmt.Sprintf("%s is not a number", x),
-		},
-		true
-	}
+func reducePlus(acc *intOrFloat, addend intOrFloat) {
+	acc.increaseBy(addend)
 }
 
-var reducePlus = mkArithmeticReducerFunction(
-	func(x int64, y int64) (int64, error) { return x+y, nil },
-	func(x float64, y float64) (float64, error) { return x+y, nil },
-)
+func fnMinus(args []Sexpr) (Sexpr, sexpr_error) {
+	minuend, err := parseIntOrFloat(args[0])
+	if err != nil {
+		return nil, evaluationError{"-", err.Error()}
+	}
+	subtrahend, err := parseIntOrFloat(args[1])
+	if err != nil {
+		return nil, evaluationError{"-", err.Error()}
+	}
+	// else
+	minuend.decreaseBy(*subtrahend)
+	return minuend.Sexprize(), nil
+}
 
 // evalQuote is a macro; it does not evaluate all its arguments
 func evalQuote(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
