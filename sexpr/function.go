@@ -75,7 +75,7 @@ var primitiveFunctions = map[string]applicator {
 	"car":    mkConsSelector("car", func (c sexpr_cons) Sexpr { return c.car }),
 	"cdr":    mkConsSelector("cdr", func (c sexpr_cons) Sexpr { return c.cdr }),
 	"=":      mkNaryFn("=", 2, fnEqualNumber),
-	"eq?":    mkNaryFn("eq?", 2, fnEqualSymbol),
+	"eq?":    mkNaryFn("eq?", 2, fnEqualAtom),
 	"null?":  mkNaryFn("null?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
 		if args[0] == Nil {
 			return True, nil
@@ -302,6 +302,18 @@ func mkEqualAtomChecker(typ atomType) applicator {
 }
 var fnEqualNumber = mkEqualAtomChecker(atomNumber)
 var fnEqualSymbol = mkEqualAtomChecker(atomSymbol)
+func fnEqualAtom(args []Sexpr) (Sexpr, sexpr_error) {
+	if args[0] == Nil {
+		for i := 1 ; i < len(args) ; i++ {
+			if args[i] != Nil {
+				return False, nil
+			}
+		}
+		return True, nil
+	}
+	// else
+	return fnEqualSymbol(args)
+}
 
 // evalQuote is a macro; it does not evaluate all its arguments
 func evalQuote(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
