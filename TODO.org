@@ -50,24 +50,30 @@ Please be gentle
 
 ** λ
 
-I really want a keyword "*lambda*".  With that, we could define
+If you want to be super-clever, try
 
 #+BEGIN_SRC scheme
-(define cons
+(define conz
   (lambda (a b)
     (lambda (c)
-      (if (eq? c 'car)
-          a
-          (if (eq? c 'cdr)
-              b
-          )
-      )
-    )
-  )
-)
-(define car (lambda (c) (c 'car)))
-(define cdr (lambda (c) (c 'cdr)))
+      (c a b))))
+(define carr
+  (lambda (c)
+    (c (lambda (a b) a))))
+(define cdrr
+  (lambda (c)
+    (c (lambda (a b) b))))
+
+(define trick (conz 'mind 'blown))
+(eq? (carr trick) 'mind)
+(eq? (cdrr trick) 'blown)
 #+END_SRC
+
+Sadly, I had to look that one up.  I knew there was /some/ clever way
+to =cons=/=car=/=cdr= from λ, but the only way I remembered was to use
+=eq?=.  Which is really cheating.
+
+This is [[./examples/lambda-the-ultimate-trick.ss][in the examples]].
 
 *** Notation for primitive symbols
 
