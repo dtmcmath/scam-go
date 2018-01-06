@@ -38,6 +38,24 @@ func unconsify(list Sexpr) ([]Sexpr, error) {
 	}
 	return ans, nil
 }
+// Like unconsify, but throws an error if the resulting list is not of
+// length n.
+func unconsifyN(list Sexpr, n int) ([]Sexpr, error) {
+	if ans, err := unconsify(list) ; err != nil {
+		return nil, err
+	} else if len(ans) != n {
+		plural := ""
+		if n > 1 {
+			plural = "s"
+		}
+		msg := fmt.Sprintf("Expected %d argument%s, got %d",
+			n, plural, len(ans),
+		)
+		return nil, errors.New(msg)
+	} else {
+		return ans, nil
+	}
+}
 
 // Test for equality (not eq?-ness) of expressions.  For everything
 // except Cons-es, it's just identity in the normal Go-sense.  For
@@ -86,3 +104,6 @@ func mkRuneChannel(in string) <-chan rune {
 	}()
 	return ans
 }
+
+// isFalsey says whether "if" should skip it.  Only False and Nil are falsey.
+func isFalsey(s Sexpr) bool { return s == Nil || s == False }

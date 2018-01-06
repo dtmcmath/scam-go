@@ -76,11 +76,6 @@ func (a sexpr_atom) String() string {
 func (a sexpr_atom) evaluate(ctx *evaluationContext) (Sexpr, sexpr_error) {
 	switch a.typ {
 	case atomSymbol:
-		// The primitives are just themselves (for now)
-		if _, ok := atomPrimitives[a.name] ; ok {
-			return a, nil
-		}
-		// else
 		if val, ok := ctx.lookup(a) ; !ok {
 			return nil, evaluationError{
 				"lookup",
@@ -102,6 +97,7 @@ var (
 	True sexpr_atom = sexpr_atom{atomBoolean, "t"}
 	False sexpr_atom = sexpr_atom{atomBoolean, "f"}
 	Quote sexpr_atom = mkAtomSymbol("quote")
+	Else sexpr_atom = mkAtomSymbol("else")
 )
 // TODO:  Different string representations of the same number are
 // different atoms; are they comparable?

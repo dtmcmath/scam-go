@@ -41,22 +41,60 @@ func TestEvaluateEqQ(t *testing.T) {
 
 	for _, test := range tests {
 		resetEvaluationContext()
-		_, sexprs := Parse("test", mkRuneChannel(test.input))
-		idx := 0
-		for sx := range sexprs {
-			got := Evaluate(sx)
-			if !equalSexpr(got, test.want[idx]) {
-				t.Errorf("Evaluate[%s][#%d]=%v, want %v",
-					test.input, idx, got, test.want[idx],
-				)
-			}
-			idx += 1
-		}
-		if idx != len(test.want) {
-			t.Errorf("Evaluate[%s] got %d results, want %d",
-				test.input, idx, len(test.want),
-			)
-		}
+		helpConfirmEvaluation(test.input, test.want, t)
+	}
+}
+
+func TestEvaluateLogic(t *testing.T) {
+	var tests = []struct{
+		input string
+		want []Sexpr
+	} {
+		{ "(and)", []Sexpr{ True } },
+		{ "(and #t)", []Sexpr{ True } },
+		{ "(and (eq? 'a 'a) #t)", []Sexpr{ True } },
+		{ "(and (eq? 'a 'b) #t)", []Sexpr{ False } },
+		{ "(and (eq? 'a 'b) unbound)", []Sexpr{ False } },
+		{ "(not #t)", []Sexpr{ False } },
+		{ "(not ())", []Sexpr{ True } },
+		{ "(not #f)", []Sexpr{ True } },
+		{
+			`
+(cond
+ (#t 1)
+ (#f 2)
+ (else 3))`,
+			[]Sexpr{ atomone },
+		},
+		{
+			`
+(cond
+ (#f 1)
+ (#t 2)
+ (else 3))`,
+			[]Sexpr{ atomtwo },
+		},
+		{
+			`
+(cond
+ (#f 1)
+ (#f 2)
+ (else 3))`,
+			[]Sexpr{ atomthree },
+		},
+		{
+			`
+(cond
+ (#t 1)
+ (#t 2)
+ (else 3))`,
+			[]Sexpr{ atomone },
+		},
+	}
+
+	for _, test := range tests {
+		resetEvaluationContext()
+		helpConfirmEvaluation(test.input, test.want, t)
 	}
 }
 
@@ -84,22 +122,7 @@ func TestEvaluateQuote(t *testing.T) {
 
 	for _, test := range tests {
 		resetEvaluationContext()
-		_, sexprs := Parse("test", mkRuneChannel(test.input))
-		idx := 0
-		for sx := range sexprs {
-			got := Evaluate(sx)
-			if !equalSexpr(got, test.want[idx]) {
-				t.Errorf("Evaluate[%s][#%d]=%v, want %v",
-					test.input, idx, got, test.want[idx],
-				)
-			}
-			idx += 1
-		}
-		if idx != len(test.want) {
-			t.Errorf("Evaluate[%s] got %d results, want %d",
-				test.input, idx, len(test.want),
-			)
-		}
+		helpConfirmEvaluation(test.input, test.want, t)
 	}
 }
 
@@ -141,22 +164,7 @@ func TestEvaluatorBinding(t *testing.T) {
 
 	for _, test := range tests {
 		resetEvaluationContext()
-		_, sexprs := Parse("test", mkRuneChannel(test.input))
-		idx := 0
-		for sx := range sexprs {
-			got := Evaluate(sx)
-			if !equalSexpr(got, test.want[idx]) {
-				t.Errorf("Evaluate[%s][#%d]=%v, want %v",
-					test.input, idx, got, test.want[idx],
-				)
-			}
-			idx += 1
-		}
-		if idx != len(test.want) {
-			t.Errorf("Evaluate[%s] got %d results, want %d",
-				test.input, idx, len(test.want),
-			)
-		}
+		helpConfirmEvaluation(test.input, test.want, t)
 	}
 }
 
@@ -233,6 +241,55 @@ func TestEvaluatorBinding2(t *testing.T) {
 	}
 }
 
+func TestEvaluatorLambda(t *testing.T) {
+	// Confirm we can clear values and that bindings work
+	resetEvaluationContext()
+	tests := []struct{
+		input string
+		want []Sexpr
+	} {
+		{
+			`
+(define add1 (lambda (x) (+ x 1)))
+(eq? (add1 1) 2)
+`,
+			[]Sexpr{ Nil, True },
+		},
+		{
+			`
+(define add1 (lambda (x) (+ x 1)))
+(add1 2)
+`,
+			[]Sexpr{ Nil, atomthree },
+		},
+		{
+			`
+(define atom?
+ (lambda (x)
+    (and (not (pair? x)) (not (null? x)))))
+(atom? 'a)
+(atom? '())
+(atom? '(a b))
+`,
+			[]Sexpr{ Nil, True, False, False },
+		},
+		{
+			`
+(define nonpair? (lambda (y) (not (pair? y))))
+(nonpair? 'a)
+(nonpair? '())
+(nonpair? '(a b))
+`,
+			[]Sexpr{ Nil, True, True, False },
+		},
+	}
+
+	for _, test := range tests {
+		resetEvaluationContext()
+		helpConfirmEvaluation(test.input, test.want, t)
+	}
+}
+
 func ExampleEvaluatorBinding() {
 	resetEvaluationContext()
 	program := `
@@ -270,4 +327,26 @@ func ExampleEvaluator() {
 	// gave Cons(1, 2)
 	// Evaluating Cons(Sym(eq?), Cons(Cons(Sym(car), Cons(Cons(Sym(cons), Cons(1, Cons(2, Nil))), Nil)), Cons(1, Nil)))
 	// gave #t
+}
+
+/////
+// Helpers
+/////
+func helpConfirmEvaluation(input string, want []Sexpr, t *testing.T) {
+		_, sexprs := Parse("test", mkRuneChannel(input))
+		idx := 0
+		for sx := range sexprs {
+			got := Evaluate(sx)
+			if !equalSexpr(got, want[idx]) {
+				t.Errorf("Evaluate[%s][#%d]=%v, want %v",
+					input, idx, got, want[idx],
+				)
+			}
+			idx += 1
+		}
+		if idx != len(want) {
+			t.Errorf("Evaluate[%s] got %d results, want %d",
+				input, idx, len(want),
+			)
+		}
 }
