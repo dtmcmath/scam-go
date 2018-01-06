@@ -67,13 +67,45 @@ func mkTodoEvaluator(s string) evaluator {
 var primitiveMacros = map[string]evaluator {
 	"-":      mkTodoEvaluator("-"),
 	"+":      evalPlus,
-	"cons":   evalCons,
+	"cons":   mkNaryFn("cons", 2, func(args []Sexpr) Sexpr {
+		return mkCons(args[0], args[1])
+	}),
 	"car":    metaEval("car", func (c sexpr_cons) Sexpr { return c.car }),
 	"cdr":    metaEval("cdr", func (c sexpr_cons) Sexpr { return c.cdr }),
-	"eq?":    evalEqQ,
+	"eq?":    mkNaryFn("eq?", 2, func(args []Sexpr) Sexpr {
+		if args[0] == args[1] {
+			return True
+		} else {
+			// TODO:  Be nice with numbers?  The Little Schemer says
+			//
+			// ; (eq? 5 6)
+			// ; not-applicable because eq? works only on non-numeric atom
+			//
+			// so we're already being generous by saying True sometimes.
+			// For the record, the problem is that "3.0" and "3" and
+			// "3.00" are all different atoms.
+			return False
+		}
+	}),
 	"quote":  evalQuote,
-	"null?":  evalNullQ,
-	"atom?":  evalAtomQ, // non-primitive, soon
+	"null?":  mkNaryFn("null?", 1, func(args []Sexpr) Sexpr {
+		if args[0] == Nil {
+			return True
+		} else {
+			return False
+		}
+	}),
+	// non-primitive, soon
+	"atom?":  mkNaryFn("atom?", 1, func(args []Sexpr) Sexpr {
+		switch val := args[0].(type) {
+		case sexpr_atom:
+			if val != Nil {
+				return True
+			}
+		}
+		// else
+		return False
+	}),
 	"define": evalDefine,
 	"let":    evalLet,
 	"pair?":  mkTodoEvaluator("pair?"),
@@ -99,32 +131,20 @@ func requireArgCount(
 	context string,
 	required int,
 	ctx *evaluationContext) ([]Sexpr, sexpr_error) {
-	var err sexpr_error
-	args, unconsify_err := unconsify(lst)
+	var args []Sexpr
+	var unconsify_err error
+	if required >= 0 {
+		args, unconsify_err = unconsifyN(lst, required)
+	} else {
+		args, unconsify_err = unconsify(lst)
+	}
 	if unconsify_err != nil {
 		return nil, evaluationError{
-			context,
-			fmt.Sprintf("Strange arguments %q", lst),
-		}
-	}
-	if required > 0 && len(args) != required {
-		// return nil, evaluationError{
-		// 	context: context,
-		// 	message: fmt.Sprintf("Incorrect argument count (%d) in call %s",
-		// 		len(args), lst)
-		// }
-		plural := ""
-		if required > 1 {
-			plural = "s"
-		}
-		return nil, evaluationError{
-			context: context,
-			message: fmt.Sprintf("Expected %d argument%s, got %d",
-				required, plural, len(args),
-			),
+			context, unconsify_err.Error(),
 		}
 	}
 	if ctx != nil {
+		var err sexpr_error
 		for idx, arg := range args {
 			if args[idx], err = evaluateWithContext(arg, ctx) ; err != nil {
 				return nil, err
@@ -152,39 +172,31 @@ func metaEval(name string, sel func(sexpr_cons) Sexpr) evaluator {
 		}
 	}
 }
-/////
-// Definitions of evaluators
-/////
-func evalCons(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-	args, err := requireArgCount(lst, "cons", 2, ctx)
-	if err != nil {
-		return nil, err
-	}
-	// else
-	return mkCons(args[0], args[1]), nil
-}
-
-func evalEqQ(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-	args, err := requireArgCount(lst, "eq?", 2, ctx)
-	if err != nil {
-		return nil, err
-	}
-	// else
-	if args[0] == args[1] {
-		return True, nil
-	} else {
-		// TODO:  Be nice with numbers?  The Little Schemer says
-		//
-		// ; (eq? 5 6)
-		// ; not-applicable because eq? works only on non-numeric atom
-		//
-		// so we're already being generous by saying True sometimes.
-		// For the record, the problem is that "3.0" and "3" and
-		// "3.00" are all different atoms.
-		return False, nil
+// mkNaryFn makes an n-ary "normal" function, one that operates on
+// its arguments after they've been evaluated.  It doesn't admit
+// exceptions after the arguments are evaluated.
+//
+// An n-ary function is really a macro; a func_expr wouldn't need the
+// evaluation context, because its arguments are always evaluated.
+// We'll get there.  For now, this is what it is:  The "function" is
+// un charge of making sure its arguments are evaluated in the right
+// context.
+//
+// It's not perfect, but I only realized the real difference between
+// function and macro a few minutes ago.
+func mkNaryFn(name string, n int, fn func([]Sexpr) Sexpr) evaluator {
+	return func(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
+		args, err := requireArgCount(lst, name, n, ctx)
+		if err != nil {
+			return nil, err
+		}
+		return fn(args), nil
 	}
 }
-
+/////
+// Definitions of complicated things, too simple for inlining.  Mostly
+// macros, but a few others.
+/////
 type intOrFloat struct{
 	asint   int64
 	asfloat float64
@@ -270,37 +282,6 @@ func evalQuote(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 	// else
 	// return the first argument, unevaluated
 	return args[0], nil
-}
-
-func evalNullQ(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-	args, err := requireArgCount(lst, "null?", 1, ctx)
-	if err != nil {
-		return nil, err
-	}
-	// else
-	if args[0] == Nil {
-		return True, nil
-	} else {
-		return False, nil
-	}
-}
-
-func evalAtomQ(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-	args, err := requireArgCount(lst, "atom?", 1, ctx)
-	if err != nil {
-		return nil, err
-	}
-	// else
-	switch val := args[0].(type) {
-	case sexpr_atom:
-		if val != Nil {
-			return True, nil
-		} else {
-			return False, nil
-		}
-	default:
-		return False, nil
-	}
 }
 
 // evalDefine is a macro; it does not evaluate all its arguments
