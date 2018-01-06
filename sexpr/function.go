@@ -123,41 +123,6 @@ var primitiveFunctions = map[string]applicator {
 // Helpers
 /////
 
-// requireArgCount checks various things about arguments.  Namely
-// that the argument count matches required and, if "ctx" is non-nil,
-// that the arguments are evaluable.
-//
-// It returns the arguments, evaluated if requested, or an error if
-// there is a probblem.
-func requireArgCount(
-	lst Sexpr,
-	context string,
-	required int,
-	ctx *evaluationContext) ([]Sexpr, sexpr_error) {
-	var args []Sexpr
-	var unconsify_err error
-	if required >= 0 {
-		args, unconsify_err = unconsifyN(lst, required)
-	} else {
-		args, unconsify_err = unconsify(lst)
-	}
-	if unconsify_err != nil {
-		return nil, evaluationError{
-			context, unconsify_err.Error(),
-		}
-	}
-	if ctx != nil {
-		var err sexpr_error
-		for idx, arg := range args {
-			if args[idx], err = evaluateWithContext(arg, ctx) ; err != nil {
-				return nil, err
-			}
-		}
-	}
-	// else
-	return args, nil
-}
-
 // mkNaryFn makes an n-ary "normal" function, one that operates on
 // its arguments after they've been evaluated.
 func mkNaryFn(name string, n int, fn func([]Sexpr) (Sexpr, sexpr_error)) applicator {
@@ -297,9 +262,9 @@ func reducePlus(acc intOrFloat, summand Sexpr) (intOrFloat, sexpr_error, bool) {
 
 // evalQuote is a macro; it does not evaluate all its arguments
 func evalQuote(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-	args, err := requireArgCount(lst, "quote", 1, nil)
+	args, err := unconsifyN(lst, 1)
 	if err != nil {
-		return nil, err
+		return nil, evaluationError{"quote", err.Error()}
 	}
 	// else
 	// return the first argument, unevaluated
@@ -308,9 +273,9 @@ func evalQuote(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 
 // evalDefine is a macro; it does not evaluate all its arguments
 func evalDefine(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-	args, err := requireArgCount(lst, "define", 2, nil)
+	args, err := unconsifyN(lst, 2)
 	if err != nil {
-		return nil, err
+		return nil, evaluationError{"define", err.Error()}
 	}
 	// else
 	key := args[0]
@@ -340,22 +305,22 @@ func evalDefine(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 }
 
 func evalLet(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-	args, err := requireArgCount(lst, "let", 2, nil)
+	args, err := unconsifyN(lst, 2)
 	if err != nil {
-		return nil, err
+		return nil, evaluationError{"let", err.Error()}
 	}
 	// else
-	bindings, err := requireArgCount(args[0], "let(prep)", -1, nil)
+	bindings, err := unconsify(args[0])
 	if err != nil {
-		return nil, err
+		return nil, evaluationError{"let(args)", err.Error()}
 	}
 
 	newCtx := evaluationContext{make(symbolTable), ctx}
 	for _, b := range bindings {
 		// log.Println("Create binding from", b)
-		kv, err := requireArgCount(b, "let(binding)", 2, nil)
+		kv, err := unconsifyN(b, 2)
 		if err != nil {
-			return nil, err
+			return nil, evaluationError{"let(binding)", err.Error()}
 		}
 		switch key := kv[0].(type) {
 		case sexpr_atom:
@@ -377,17 +342,13 @@ func evalLet(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 			}
 		}
 	}
-	val, err := evaluateWithContext(args[1], &newCtx)
-	if err != nil {
-		return nil, err
-	}
-	return val, nil
+	return evaluateWithContext(args[1], &newCtx)
 }
 
 func evalLambda(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-	args, err := requireArgCount(lst, "lambda", 2, nil) // eventually "many"
+	args, err := unconsifyN(lst, 2) // eventually "many"
 	if err != nil {
-		return nil, err
+		return nil, evaluationError{"lambda", err.Error()}
 	}
 	var bound []sexpr_atom
 	if decl, unconsify_err := unconsify(args[0]) ; unconsify_err != nil {
