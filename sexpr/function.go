@@ -31,13 +31,20 @@ func declareFunction(
 	}
 	return &func_expr{description, bound, body, ctx}, nil
 }
+// Evaluate the function with the given arguments.  The arguments are
+// already evaluated in some other context, so all we have to do here
+// is some binding and then evaluate the body.
+//
+// If something in f.bound is a non-symbol, we have a serious
+// problem.  You shouldn't have been alowed to do that!!
 func (f func_expr) apply(args []Sexpr) (Sexpr, sexpr_error) {
 	newCtx := &evaluationContext{make(symbolTable), f.ctx}
 	for idx, sym := range f.bound {
-		if val, err := evaluateWithContext(args[idx], f.ctx) ; err != nil {
-			return nil, err
-		} else {
-			newCtx.bind(sym, val)
+		if err := newCtx.bind(sym, args[idx]) ; err != nil {
+			return nil, evaluationError{
+				fmt.Sprintf("%s(bind %q)", f.definition, sym),
+				err.Error(),
+			}
 		}
 	}
 	return evaluateWithContext(f.body, newCtx)
@@ -408,7 +415,7 @@ func evalLambda(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 		}
 	}
 	ans, declare_err := declareFunction(
-		fmt.Sprintf("(λ %s %s)", args[0], args[1]),
+		fmt.Sprintf("(λ (%s) %s)", bound, args[1].Sprint()),
 		bound,
 		args[1],
 		ctx,
