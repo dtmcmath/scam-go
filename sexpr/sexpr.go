@@ -97,6 +97,7 @@ var (
 	True sexpr_atom = sexpr_atom{atomBoolean, "t"}
 	False sexpr_atom = sexpr_atom{atomBoolean, "f"}
 	Quote sexpr_atom = mkAtomSymbol("quote")
+	Else sexpr_atom = mkAtomSymbol("else")
 )
 // TODO:  Different string representations of the same number are
 // different atoms; are they comparable?

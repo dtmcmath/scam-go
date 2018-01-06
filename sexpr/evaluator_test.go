@@ -58,6 +58,38 @@ func TestEvaluateLogic(t *testing.T) {
 		{ "(not #t)", []Sexpr{ False } },
 		{ "(not ())", []Sexpr{ True } },
 		{ "(not #f)", []Sexpr{ True } },
+		{
+			`
+(cond
+ (#t 1)
+ (#f 2)
+ (else 3))`,
+			[]Sexpr{ atomone },
+		},
+		{
+			`
+(cond
+ (#f 1)
+ (#t 2)
+ (else 3))`,
+			[]Sexpr{ atomtwo },
+		},
+		{
+			`
+(cond
+ (#f 1)
+ (#f 2)
+ (else 3))`,
+			[]Sexpr{ atomthree },
+		},
+		{
+			`
+(cond
+ (#t 1)
+ (#t 2)
+ (else 3))`,
+			[]Sexpr{ atomone },
+		},
 	}
 
 	for _, test := range tests {

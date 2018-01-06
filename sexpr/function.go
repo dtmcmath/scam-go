@@ -135,7 +135,7 @@ var primitiveMacros = map[string]evaluator {
 		}
 	}),
 	"if":     mkTodoEvaluator("if"),
-	"cond":   mkTodoEvaluator("cond"),
+	"cond":   evalCond,
 	// "else": mkTodoEvaluator(),
 }
 /////
@@ -215,6 +215,33 @@ func mkNaryFn(name string, n int, fn func([]Sexpr) Sexpr) evaluator {
 		return fn(args), nil
 	}
 }
+
+
+func mkLazyReduce(
+	name string,
+	acc Sexpr,
+	reducer func(acc Sexpr, val Sexpr) (Sexpr, bool),
+) evaluator {
+	return func(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
+		args, err := unconsify(lst)
+		if err != nil {
+			return nil, evaluationError{name, err.Error()}
+		}
+		ans := acc
+		for _, term := range args {
+			val, err := evaluateWithContext(term, ctx)
+			if err != nil {
+				return nil, err
+			}
+			// else
+			if ans, done := reducer(ans, val) ; done {
+				return ans, nil
+			}
+		}
+		return ans, nil
+	}
+}
+
 /////
 // Definitions of complicated things, too simple for inlining.  Mostly
 // macros, but a few others.
@@ -426,26 +453,30 @@ func evalLambda(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 	return *ans, nil
 }
 
-func mkLazyReduce(
-	name string,
-	acc Sexpr,
-	reducer func(acc Sexpr, val Sexpr) (Sexpr, bool),
-) evaluator {
-	return func(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-		args, err := unconsify(lst)
+// If none of the first-elements to "cond" are truthy, the eventual
+// value is undefined.  We'll call it "Nil" (I guess)
+func evalCond(lst Sexpr, ctx *evaluationContext) (s Sexpr, serr sexpr_error) {
+	args, err := unconsify(lst)
+	if err != nil {
+		return nil, evaluationError{"cond", err.Error()}
+	}
+	for _, pair := range args {
+		test, err := unconsifyN(pair, 2)
 		if err != nil {
-			return nil, evaluationError{name, err.Error()}
-		}
-		ans := acc
-		for _, term := range args {
-			if val, err := evaluateWithContext(term, ctx) ; err != nil {
-				return nil, err
-			} else {
-				if ans, done := reducer(ans, val) ; done {
-					return ans, nil
-				}
+			return nil, evaluationError{
+				"cond",
+				fmt.Sprint("Unrecognizable test %q (%s)", pair, err.Error()),
 			}
 		}
-		return ans, nil
+		if test[0] == Else {
+			return evaluateWithContext(test[1], ctx)
+		}
+		// else
+		if predicate, serr := evaluateWithContext(test[0], ctx) ; serr != nil {
+			return nil, serr
+		} else if !isFalsey(predicate) {
+			return evaluateWithContext(test[1], ctx)
+		}
 	}
+	return Nil, nil // or nil, nil, if we get "define" doing that.
 }
