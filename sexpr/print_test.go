@@ -11,7 +11,7 @@ func TestPrint(t *testing.T) {
 	} {
 		{ "'(1 2)", []string{ "(1 2)" } },
 		{ "(+ 1 2 3)", []string{ "6" } },
-		{ "(eq? 2 (+ 1 1))", []string { "#t" } },
+		{ "(= 2 (+ 1 1))", []string { "#t" } },
 		{
 			"(+ 10 20)(cons 'atom 'molecule)",
 			[]string{

@@ -74,21 +74,8 @@ var primitiveFunctions = map[string]applicator {
 	}),
 	"car":    mkConsSelector("car", func (c sexpr_cons) Sexpr { return c.car }),
 	"cdr":    mkConsSelector("cdr", func (c sexpr_cons) Sexpr { return c.cdr }),
-	"eq?":    mkNaryFn("eq?", 2, func(args []Sexpr) (Sexpr, sexpr_error) {
-		if args[0] == args[1] {
-			return True, nil
-		} else {
-			// TODO:  Be nice with numbers?  The Little Schemer says
-			//
-			// ; (eq? 5 6)
-			// ; not-applicable because eq? works only on non-numeric atom
-			//
-			// so we're already being generous by saying True sometimes.
-			// For the record, the problem is that "3.0" and "3" and
-			// "3.00" are all different atoms.
-			return False, nil
-		}
-	}),
+	"=":      mkNaryFn("=", 2, fnEqualNumber),
+	"eq?":    mkNaryFn("eq?", 2, fnEqualSymbol),
 	"null?":  mkNaryFn("null?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
 		if args[0] == Nil {
 			return True, nil
@@ -134,7 +121,7 @@ func mkNaryFn(name string, n int, fn func([]Sexpr) (Sexpr, sexpr_error)) applica
 		ans, err := fn(args)
 		if err != nil {
 			// divide-by-zero, for instance
-			return nil, err
+			return nil, evaluationError{name, err.Error()}
 		}
 		return ans, nil
 	}
@@ -287,6 +274,34 @@ func fnMinus(args []Sexpr) (Sexpr, sexpr_error) {
 	minuend.decreaseBy(*subtrahend)
 	return minuend.Sexprize(), nil
 }
+
+func mkEqualAtomChecker(typ atomType) applicator {
+	return func(args []Sexpr) (Sexpr, sexpr_error) {
+		var atoms []sexpr_atom
+		for _, arg := range args {
+			switch arg := arg.(type) {
+			case sexpr_atom:
+				atoms = append(atoms, arg)
+			default:
+				return False, nil
+			}
+		}
+		// reaching here, we have atoms
+		// Assume at least one; n-ary 2 (probably)
+		if atoms[0].typ != typ {
+			return False, nil
+		}
+		// now check all the rest are the same
+		for i := 0 ; 1+i < len(atoms) ; i++ {
+			if atoms[1+i] != atoms[i] {
+				return False, nil
+			}
+		}
+		return True, nil
+	}
+}
+var fnEqualNumber = mkEqualAtomChecker(atomNumber)
+var fnEqualSymbol = mkEqualAtomChecker(atomSymbol)
 
 // evalQuote is a macro; it does not evaluate all its arguments
 func evalQuote(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
