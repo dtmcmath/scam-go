@@ -22,6 +22,10 @@ done to make SCAM a thing of true beauty.
 really ought to be nonsense; *define* isn't actually a term.  It's a
 macro, or something
 
+** Periodic errors in REPL reading files
+
+Written up as [[./issues/issue1.org][issue #1]].
+
 * Desiderata
 
 ** λ
