@@ -142,7 +142,7 @@ var primitiveMacros = map[string]evaluator {
 // Helpers
 /////
 
-// requireArgsCount checks various things about arguments.  Namely
+// requireArgCount checks various things about arguments.  Namely
 // that the argument count matches required and, if "ctx" is non-nil,
 // that the arguments are evaluable.
 //
