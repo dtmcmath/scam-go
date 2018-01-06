@@ -22,30 +22,6 @@ done to make SCAM a thing of true beauty.
 really ought to be nonsense; *define* isn't actually a term.  It's a
 macro, or something
 
-** Plain-ol' atoms are assumed to be methods
-
-In real Scheme:
-
-#+BEGIN_SRC
-$ chez
-Chez Scheme Version 9.5
-Copyright 1984-2017 Cisco Systems, Inc.
-
-> (#t)
-Exception: attempt to apply non-procedure #t
-#+END_SRC
-
-That's a much better answer than
-
-#+BEGIN_SRC
-$ go run scam.go
-SCAM Version 0.1
-Please be gentle
-
-> (#t)
-(#t)
-#+END_SRC
-
 * Desiderata
 
 ** λ
