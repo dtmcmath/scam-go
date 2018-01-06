@@ -8,11 +8,11 @@ import (
 // Functions are first class objects.  The file defines operations
 // with functions and some with just macros.
 
-type func_applicator func([]Sexpr) (Sexpr, sexpr_error)
+type applicator func([]Sexpr) (Sexpr, sexpr_error)
 type func_expr struct{
 	definition string
 	// A function is handed its arguments pre-evaluated
-	apply func_applicator
+	apply applicator
 }
 func (f func_expr) Sprint() string {
 	return fmt.Sprintf("fn:%s", f.definition)
@@ -59,13 +59,13 @@ var primitiveMacros = map[string]evaluator {
 	"cond":   evalCond,
 }
 
-func mkTodoApplicator(s string) func_applicator {
+func mkTodoApplicator(s string) applicator {
 	return func(ignore []Sexpr) (Sexpr, sexpr_error) {
 		return nil, evaluationError{s, "is not yet implemented"}
 	}
 }
 
-var primitiveFunctions = map[string]func_applicator {
+var primitiveFunctions = map[string]applicator {
 	"-":      mkTodoApplicator("-"),
 	"+":      mkArithmeticReduce(
 		"+",
@@ -160,7 +160,7 @@ func requireArgCount(
 
 // mkNaryFn makes an n-ary "normal" function, one that operates on
 // its arguments after they've been evaluated.
-func mkNaryFn(name string, n int, fn func([]Sexpr) (Sexpr, sexpr_error)) func_applicator {
+func mkNaryFn(name string, n int, fn func([]Sexpr) (Sexpr, sexpr_error)) applicator {
 	return func(args []Sexpr) (Sexpr, sexpr_error) {
 		ans, err := fn(args)
 		if err != nil {
@@ -171,7 +171,7 @@ func mkNaryFn(name string, n int, fn func([]Sexpr) (Sexpr, sexpr_error)) func_ap
 	}
 }
 
-func mkConsSelector(name string, sel func(sexpr_cons) Sexpr) func_applicator {
+func mkConsSelector(name string, sel func(sexpr_cons) Sexpr) applicator {
 	return mkNaryFn(name, 1, func(args []Sexpr) (Sexpr, sexpr_error) {
 		switch first := args[0].(type) {
 		case sexpr_cons: return sel(first), nil
@@ -232,7 +232,7 @@ func mkArithmeticReduce(
 	name string,
 	acc intOrFloat,
 	reducer func(acc intOrFloat, val Sexpr) (intOrFloat, sexpr_error, bool),
-) func_applicator {
+) applicator {
 	return func(args []Sexpr) (Sexpr, sexpr_error) {
 		ans := acc
 		var ( // Declare outside the loop, else ans is shadowed
