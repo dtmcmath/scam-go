@@ -188,6 +188,28 @@ func TestEvaluatorBinding2(t *testing.T) {
 	}
 }
 
+func TestEvaluatorLambda(t *testing.T) {
+	// Confirm we can clear values and that bindings work
+	resetEvaluationContext()
+	tests := []struct{
+		input string
+		want []Sexpr
+	} {
+		{
+			`
+(define add1 (lambda (x) (+ x 1)))
+(eq? (add1 1) 2)
+`,
+			[]Sexpr{ Nil, True },
+		},
+	}
+
+	for _, test := range tests {
+		resetEvaluationContext()
+		helpConfirmEvaluation(test.input, test.want, t)
+	}
+}
+
 func ExampleEvaluatorBinding() {
 	resetEvaluationContext()
 	program := `
