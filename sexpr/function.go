@@ -95,23 +95,38 @@ var primitiveMacros = map[string]evaluator {
 			return False
 		}
 	}),
-	// non-primitive, soon
-	"atom?":  mkNaryFn("atom?", 1, func(args []Sexpr) Sexpr {
-		switch val := args[0].(type) {
-		case sexpr_atom:
-			if val != Nil {
-				return True
-			}
+	"define": evalDefine,
+	"let":    evalLet,
+	"pair?":  mkNaryFn("pair?", 1, func(args []Sexpr) Sexpr {
+		switch args[0].(type) {
+		case sexpr_cons:
+			return True
 		}
 		// else
 		return False
 	}),
-	"define": evalDefine,
-	"let":    evalLet,
-	"pair?":  mkTodoEvaluator("pair?"),
+	"not":    mkNaryFn("not", 1, func(args []Sexpr) Sexpr {
+		if args[0] == True {
+			return False
+		} else {
+			return True
+		}
+	}),
 	"lambda": evalLambda,
-	"and":    mkTodoEvaluator("and"),
-	"or":     mkTodoEvaluator("or"),
+	"and":    mkLazyReduce("and", True, func(acc Sexpr, val Sexpr) (Sexpr, bool) {
+		if isFalsey(val) {
+			return False, true
+		} else {
+			return acc, false
+		}
+	}),
+	"or":     mkLazyReduce("or", False, func(acc Sexpr, val Sexpr) (Sexpr, bool) {
+		if !isFalsey(val) {
+			return True, true
+		} else {
+			return acc, false
+		}
+	}),
 	"if":     mkTodoEvaluator("if"),
 	"cond":   mkTodoEvaluator("cond"),
 	// "else": mkTodoEvaluator(),
@@ -402,4 +417,28 @@ func evalLambda(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 		return nil, evaluationError{"lambda", err.Error()}
 	}
 	return *ans, nil
+}
+
+func mkLazyReduce(
+	name string,
+	acc Sexpr,
+	reducer func(acc Sexpr, val Sexpr) (Sexpr, bool),
+) evaluator {
+	return func(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
+		args, err := unconsify(lst)
+		if err != nil {
+			return nil, evaluationError{name, err.Error()}
+		}
+		ans := acc
+		for _, term := range args {
+			if val, err := evaluateWithContext(term, ctx) ; err != nil {
+				return nil, err
+			} else {
+				if ans, done := reducer(ans, val) ; done {
+					return ans, nil
+				}
+			}
+		}
+		return ans, nil
+	}
 }

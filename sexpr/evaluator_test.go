@@ -45,6 +45,27 @@ func TestEvaluateEqQ(t *testing.T) {
 	}
 }
 
+func TestEvaluateLogic(t *testing.T) {
+	var tests = []struct{
+		input string
+		want []Sexpr
+	} {
+		{ "(and)", []Sexpr{ True } },
+		{ "(and #t)", []Sexpr{ True } },
+		{ "(and (eq? 'a 'a) #t)", []Sexpr{ True } },
+		{ "(and (eq? 'a 'b) #t)", []Sexpr{ False } },
+		{ "(and (eq? 'a 'b) unbound)", []Sexpr{ False } },
+		{ "(not #t)", []Sexpr{ False } },
+		{ "(not ())", []Sexpr{ True } },
+		{ "(not #f)", []Sexpr{ True } },
+	}
+
+	for _, test := range tests {
+		resetEvaluationContext()
+		helpConfirmEvaluation(test.input, test.want, t)
+	}
+}
+
 func TestEvaluateQuote(t *testing.T) {
 	atoma := mkAtomSymbol("a")
 	atomb := mkAtomSymbol("b")
@@ -208,6 +229,26 @@ func TestEvaluatorLambda(t *testing.T) {
 (add1 2)
 `,
 			[]Sexpr{ Nil, atomthree },
+		},
+		{
+			`
+(define atom?
+ (lambda (x)
+    (and (not (pair? x)) (not (null? x)))))
+(atom? 'a)
+(atom? '())
+(atom? '(a b))
+`,
+			[]Sexpr{ Nil, True, False, False },
+		},
+		{
+			`
+(define nonpair? (lambda (y) (not (pair? y))))
+(nonpair? 'a)
+(nonpair? '())
+(nonpair? '(a b))
+`,
+			[]Sexpr{ Nil, True, True, False },
 		},
 	}
 
