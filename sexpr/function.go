@@ -111,6 +111,13 @@ var primitiveFunctions = map[string]applicator {
 			return True, nil
 		}
 	}),
+	"zero?":  mkNaryFn("pair?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
+		if args[0] == Zero {
+			return True, nil
+		} else {
+			return False, nil
+		}
+	}),
 }
 /////
 // Helpers
