@@ -3,62 +3,27 @@ package sexpr
 import (
 	"strconv"
 	"fmt"
-	"errors"
 )
 
 // Functions are first class objects.  The file defines operations
 // with functions and some with just macros.
 
+type func_applicator func([]Sexpr) (Sexpr, sexpr_error)
 type func_expr struct{
 	definition string
-	bound []sexpr_atom // Need to be x.typ == atomSymbol
-	body Sexpr
-	ctx *evaluationContext
+	// A function is handed its arguments pre-evaluated
+	apply func_applicator
 }
 func (f func_expr) Sprint() string {
 	return fmt.Sprintf("fn:%s", f.definition)
 }
-func declareFunction(
-	description string,
-	bound []sexpr_atom,
-	body Sexpr,
-	ctx *evaluationContext) (*func_expr, error) {
-	for _, v := range bound {
-		if v.typ != atomSymbol { // TODO:  Symbols become their own things?
-			msg := fmt.Sprintf("Invalid parameter-name %q", v)
-			return nil, errors.New(msg)
-		}
-	}
-	return &func_expr{description, bound, body, ctx}, nil
-}
-// Evaluate the function with the given arguments.  The arguments are
-// already evaluated in some other context, so all we have to do here
-// is some binding and then evaluate the body.
-//
-// If something in f.bound is a non-symbol, we have a serious
-// problem.  You shouldn't have been alowed to do that!!
-func (f func_expr) apply(args []Sexpr) (Sexpr, sexpr_error) {
-	newCtx := &evaluationContext{make(symbolTable), f.ctx}
-	for idx, sym := range f.bound {
-		if err := newCtx.bind(sym, args[idx]) ; err != nil {
-			return nil, evaluationError{
-				fmt.Sprintf("%s(bind %q)", f.definition, sym),
-				err.Error(),
-			}
-		}
-	}
-	return evaluateWithContext(f.body, newCtx)
-}
 
 type macro_expr struct{
 	definition string
-	applicator evaluator
+	apply evaluator
 }
 func (m macro_expr) Sprint() string {
 	return fmt.Sprintf("ma:%s", m.definition)
-}
-func (m macro_expr) apply(args Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-	return m.applicator(args, ctx)
 }
 
 // Certain primitive Atom(symbol)s are built-in.  They can't be
@@ -72,53 +37,9 @@ func mkTodoEvaluator(s string) evaluator {
 }
 
 var primitiveMacros = map[string]evaluator {
-	"-":      mkTodoEvaluator("-"),
-	"+":      evalPlus,
-	"cons":   mkNaryFn("cons", 2, func(args []Sexpr) Sexpr {
-		return mkCons(args[0], args[1])
-	}),
-	"car":    metaEval("car", func (c sexpr_cons) Sexpr { return c.car }),
-	"cdr":    metaEval("cdr", func (c sexpr_cons) Sexpr { return c.cdr }),
-	"eq?":    mkNaryFn("eq?", 2, func(args []Sexpr) Sexpr {
-		if args[0] == args[1] {
-			return True
-		} else {
-			// TODO:  Be nice with numbers?  The Little Schemer says
-			//
-			// ; (eq? 5 6)
-			// ; not-applicable because eq? works only on non-numeric atom
-			//
-			// so we're already being generous by saying True sometimes.
-			// For the record, the problem is that "3.0" and "3" and
-			// "3.00" are all different atoms.
-			return False
-		}
-	}),
 	"quote":  evalQuote,
-	"null?":  mkNaryFn("null?", 1, func(args []Sexpr) Sexpr {
-		if args[0] == Nil {
-			return True
-		} else {
-			return False
-		}
-	}),
 	"define": evalDefine,
 	"let":    evalLet,
-	"pair?":  mkNaryFn("pair?", 1, func(args []Sexpr) Sexpr {
-		switch args[0].(type) {
-		case sexpr_cons:
-			return True
-		}
-		// else
-		return False
-	}),
-	"not":    mkNaryFn("not", 1, func(args []Sexpr) Sexpr {
-		if args[0] == True {
-			return False
-		} else {
-			return True
-		}
-	}),
 	"lambda": evalLambda,
 	"and":    mkLazyReduce("and", True, func(acc Sexpr, val Sexpr) (Sexpr, bool) {
 		if isFalsey(val) {
@@ -136,7 +57,67 @@ var primitiveMacros = map[string]evaluator {
 	}),
 	"if":     mkTodoEvaluator("if"),
 	"cond":   evalCond,
-	// "else": mkTodoEvaluator(),
+}
+
+func mkTodoApplicator(s string) func_applicator {
+	return func(ignore []Sexpr) (Sexpr, sexpr_error) {
+		return nil, evaluationError{s, "is not yet implemented"}
+	}
+}
+
+var primitiveFunctions = map[string]func_applicator {
+	"-":      mkTodoApplicator("-"),
+	"+":      mkArithmeticReduce(
+		"+",
+		intOrFloat{
+			asint: 0,
+			asfloat: 0,
+			isInt: true,
+		},
+		reducePlus,
+	),
+	"cons":   mkNaryFn("cons", 2, func(args []Sexpr) (Sexpr, sexpr_error) {
+		return mkCons(args[0], args[1]), nil
+	}),
+	"car":    mkConsSelector("car", func (c sexpr_cons) Sexpr { return c.car }),
+	"cdr":    mkConsSelector("cdr", func (c sexpr_cons) Sexpr { return c.cdr }),
+	"eq?":    mkNaryFn("eq?", 2, func(args []Sexpr) (Sexpr, sexpr_error) {
+		if args[0] == args[1] {
+			return True, nil
+		} else {
+			// TODO:  Be nice with numbers?  The Little Schemer says
+			//
+			// ; (eq? 5 6)
+			// ; not-applicable because eq? works only on non-numeric atom
+			//
+			// so we're already being generous by saying True sometimes.
+			// For the record, the problem is that "3.0" and "3" and
+			// "3.00" are all different atoms.
+			return False, nil
+		}
+	}),
+	"null?":  mkNaryFn("null?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
+		if args[0] == Nil {
+			return True, nil
+		} else {
+			return False, nil
+		}
+	}),
+	"pair?":  mkNaryFn("pair?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
+		switch args[0].(type) {
+		case sexpr_cons:
+			return True, nil
+		}
+		// else
+		return False, nil
+	}),
+	"not":    mkNaryFn("not", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
+		if args[0] == True {
+			return False, nil
+		} else {
+			return True, nil
+		}
+	}),
 }
 /////
 // Helpers
@@ -177,13 +158,21 @@ func requireArgCount(
 	return args, nil
 }
 
-func metaEval(name string, sel func(sexpr_cons) Sexpr) evaluator {
-	return func(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-		args, err := requireArgCount(lst, name, 1, ctx)
+// mkNaryFn makes an n-ary "normal" function, one that operates on
+// its arguments after they've been evaluated.
+func mkNaryFn(name string, n int, fn func([]Sexpr) (Sexpr, sexpr_error)) func_applicator {
+	return func(args []Sexpr) (Sexpr, sexpr_error) {
+		ans, err := fn(args)
 		if err != nil {
+			// divide-by-zero, for instance
 			return nil, err
 		}
-		// else
+		return ans, nil
+	}
+}
+
+func mkConsSelector(name string, sel func(sexpr_cons) Sexpr) func_applicator {
+	return mkNaryFn(name, 1, func(args []Sexpr) (Sexpr, sexpr_error) {
 		switch first := args[0].(type) {
 		case sexpr_cons: return sel(first), nil
 		default:
@@ -192,28 +181,7 @@ func metaEval(name string, sel func(sexpr_cons) Sexpr) evaluator {
 				fmt.Sprintf("%s is not a pair", first),
 			}
 		}
-	}
-}
-// mkNaryFn makes an n-ary "normal" function, one that operates on
-// its arguments after they've been evaluated.  It doesn't admit
-// exceptions after the arguments are evaluated.
-//
-// An n-ary function is really a macro; a func_expr wouldn't need the
-// evaluation context, because its arguments are always evaluated.
-// We'll get there.  For now, this is what it is:  The "function" is
-// un charge of making sure its arguments are evaluated in the right
-// context.
-//
-// It's not perfect, but I only realized the real difference between
-// function and macro a few minutes ago.
-func mkNaryFn(name string, n int, fn func([]Sexpr) Sexpr) evaluator {
-	return func(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-		args, err := requireArgCount(lst, name, n, ctx)
-		if err != nil {
-			return nil, err
-		}
-		return fn(args), nil
-	}
+	})
 }
 
 
@@ -260,66 +228,71 @@ func (i intOrFloat) String() string {
 	}
 }
 
-func evalPlus(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-	context := "+"
-	args, err := unconsify(lst)
-	if err != nil {
-		return nil, evaluationError{
-			context,
-			fmt.Sprintf("Strange arguments %q", lst),
+func mkArithmeticReduce(
+	name string,
+	acc intOrFloat,
+	reducer func(acc intOrFloat, val Sexpr) (intOrFloat, sexpr_error, bool),
+) func_applicator {
+	return func(args []Sexpr) (Sexpr, sexpr_error) {
+		ans := acc
+		var ( // Declare outside the loop, else ans is shadowed
+			err sexpr_error
+			done bool
+		)
+		for _, val := range args {
+			if ans, err, done = reducer(ans, val) ; done {
+				break
+			} else if err != nil {
+				// Like, "divide by zero" or "incompatible types"
+				return nil, evaluationError{name, err.Error()}
+			}
 		}
-	}
-
-	acc := intOrFloat{
-		asint: 0,
-		asfloat: 0,
-		isInt: true,
-	}
-
-	for _, summand := range args {
-		summand, err := evaluateWithContext(summand, ctx)
 		if err != nil {
-			return nil, err
+			// Pretend the reducer's error is our error.
+			err = evaluationError{name, err.Error()}
 		}
-		switch summand := summand.(type) {
-		case sexpr_atom:
-			if summand.typ == atomNumber {
-				if acc.isInt {
-					val, err := strconv.ParseInt(summand.name, 10, 64)
-					if err != nil {
-						acc.isInt = false
-						acc.asfloat = float64(acc.asint)
-					} else {
-						acc.asint += val
-					}
-				}
-				// NOT else; isInt might have changed!
-				if !acc.isInt {
-					val, err := strconv.ParseFloat(summand.name, 64)
-					if err != nil {
-						return nil, evaluationError{
-							context,
-							fmt.Sprintf("%s masquerades as a Number!!", summand),
-						}
-					} else {
-						acc.asfloat += val
-					}
-				}
-			} else {
-				return nil, evaluationError{
-					context,
-					fmt.Sprintf("%s is not a number", summand),
+		return mkAtomNumber(fmt.Sprintf("%s", ans)), err
+	}
+}
+
+func reducePlus(acc intOrFloat, summand Sexpr) (intOrFloat, sexpr_error, bool) {
+	switch summand := summand.(type) {
+	case sexpr_atom:
+		if summand.typ == atomNumber {
+			if acc.isInt {
+				val, err := strconv.ParseInt(summand.name, 10, 64)
+				if err != nil {
+					// Time to give up on the idea that we have an int.
+					acc.isInt = false
+					acc.asfloat = float64(acc.asint)
+				} else {
+					acc.asint += val
+					return acc, nil, false
 				}
 			}
-		default:
-			return nil, evaluationError{
-				context,
-				fmt.Sprintf("%s is not a number", summand),
+			// NOT else; isInt might have changed!
+			if !acc.isInt {
+				val, err := strconv.ParseFloat(summand.name, 64)
+				if err != nil {
+					return acc, // should be ignored; can't be nil
+					evaluationError{
+						"",
+						fmt.Sprintf("%s masquerades as a Number!!", summand),
+					},
+					true
+				} else {
+					acc.asfloat += val
+					return acc, nil, false
+				}
 			}
 		}
 	}
-
-	return mkAtomNumber(fmt.Sprintf("%s", acc)), nil
+	// else, it's either a non-atom or a non-number atom
+	return acc, evaluationError{
+		"",
+		fmt.Sprintf("%s is not a number", summand),
+	},
+	true
 }
 
 // evalQuote is a macro; it does not evaluate all its arguments
@@ -441,16 +414,22 @@ func evalLambda(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 			}
 		}
 	}
-	ans, declare_err := declareFunction(
-		fmt.Sprintf("(λ (%s) %s)", bound, args[1].Sprint()),
-		bound,
-		args[1],
-		ctx,
-	)
-	if declare_err != nil {
-		return nil, evaluationError{"lambda", err.Error()}
+
+	body := args[1]
+	definition := fmt.Sprintf("(λ (%s) %s)", bound, args[1].Sprint())
+	apply := func(args []Sexpr) (Sexpr, sexpr_error) {
+		newCtx := &evaluationContext{make(symbolTable), ctx}
+		for idx, sym := range bound {
+			if err := newCtx.bind(sym, args[idx]) ; err != nil {
+				return nil, evaluationError{
+					fmt.Sprintf("%s(bind %q)", definition, sym),
+					err.Error(),
+				}
+			}
+		}
+		return evaluateWithContext(body, newCtx)
 	}
-	return *ans, nil
+	return func_expr{definition, apply}, nil
 }
 
 // If none of the first-elements to "cond" are truthy, the eventual

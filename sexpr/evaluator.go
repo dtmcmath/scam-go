@@ -25,6 +25,12 @@ func resetEvaluationContext() {
 			macro_expr{str, eva},
 		)
 	}
+	for str, eva := range primitiveFunctions {
+		globalEvaluationContext.bind(
+			mkAtomSymbol(str),
+			func_expr{str, eva},
+		)
+	}
 }
 
 func Evaluate(s Sexpr) Sexpr {
@@ -52,14 +58,19 @@ func evaluateWithContext(s Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 		switch car := car.(type) {
 		case func_expr:
 			// Functions evaluate their arguments in the current context
-			args, err := requireArgCount(
-				s.cdr, "(eval)", -1, ctx,
-			)
-			if err != nil {
+			terms, uerr := unconsify(s.cdr)
+			if uerr != nil {
 				return nil, evaluationError{"(eval)", err.Error()}
-			} else {
-				return car.apply(args)
 			}
+			// else
+			args := make([]Sexpr, len(terms))
+			var err sexpr_error
+			for idx, term := range terms {
+				if args[idx], err = evaluateWithContext(term, ctx) ; err != nil {
+					return nil, err
+				}
+			}
+			return car.apply(args)
 		case macro_expr:
 			// Macros might do anything; give it the context
 			return car.apply(s.cdr, ctx)
