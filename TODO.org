@@ -84,13 +84,7 @@ is?
 ** Implement (more) keywords
 
 - *begin*
-- *pair?*
-- *lambda*
-
-So that we can retire
-
-- *atom?*
-- ...
+- ???
 
 * Roadmap
 
