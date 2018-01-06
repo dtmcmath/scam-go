@@ -142,7 +142,7 @@ func mkConsSelector(name string, sel func(sexpr_cons) Sexpr) applicator {
 		case sexpr_cons: return sel(first), nil
 		default:
 			return nil, evaluationError{
-				"car",
+				name,
 				fmt.Sprintf("%s is not a pair", first),
 			}
 		}
