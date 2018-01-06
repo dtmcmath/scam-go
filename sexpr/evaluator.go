@@ -60,7 +60,7 @@ func evaluateWithContext(s Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 			// Functions evaluate their arguments in the current context
 			terms, uerr := unconsify(s.cdr)
 			if uerr != nil {
-				return nil, evaluationError{"(eval)", err.Error()}
+				return nil, evaluationError{"(eval)", uerr.Error()}
 			}
 			// else
 			args := make([]Sexpr, len(terms))
