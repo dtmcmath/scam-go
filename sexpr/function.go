@@ -68,8 +68,8 @@ var primitiveMacros = map[string]evaluator {
 	"-":      mkTodoEvaluator("-"),
 	"+":      evalPlus,
 	"cons":   evalCons,
-	"car":    evalCar,
-	"cdr":    evalCdr,
+	"car":    metaEval("car", func (c sexpr_cons) Sexpr { return c.car }),
+	"cdr":    metaEval("cdr", func (c sexpr_cons) Sexpr { return c.cdr }),
 	"eq?":    evalEqQ,
 	"quote":  evalQuote,
 	"null?":  evalNullQ,
@@ -134,6 +134,24 @@ func requireArgCount(
 	// else
 	return args, nil
 }
+
+func metaEval(name string, sel func(sexpr_cons) Sexpr) evaluator {
+	return func(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
+		args, err := requireArgCount(lst, name, 1, ctx)
+		if err != nil {
+			return nil, err
+		}
+		// else
+		switch first := args[0].(type) {
+		case sexpr_cons: return sel(first), nil
+		default:
+			return nil, evaluationError{
+				"car",
+				fmt.Sprintf("%s is not a pair", first),
+			}
+		}
+	}
+}
 /////
 // Definitions of evaluators
 /////
@@ -144,44 +162,6 @@ func evalCons(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 	}
 	// else
 	return mkCons(args[0], args[1]), nil
-}
-
-func evalCar(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-	args, err := requireArgCount(lst, "car", 1, ctx)
-	if err != nil {
-		return nil, err
-	}
-	// else
-	switch first := args[0].(type) {
-	case sexpr_atom:
-		return nil, evaluationError{
-			"car",
-			fmt.Sprintf("%s is not a pair", first),
-		}
-	case sexpr_cons:
-		return first.car, nil // first.car has already been eval'd
-	default:
-		panic(fmt.Sprintf("Unrecognized Sexpr %v", first))
-	}
-}
-
-func evalCdr(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-	args, err := requireArgCount(lst, "cdr", 1, ctx)
-	if err != nil {
-		return nil, err
-	}
-	// else
-	switch first := args[0].(type) {
-	case sexpr_atom:
-		return nil, evaluationError{
-			"cdr",
-			fmt.Sprintf("%s is not a pair", first),
-		}
-	case sexpr_cons:
-		return first.cdr, nil // first.cdr has already been eval'd
-	default:
-		panic(fmt.Sprintf("Unrecognized Sexpr %v", first))
-	}
 }
 
 func evalEqQ(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
