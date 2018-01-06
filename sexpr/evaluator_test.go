@@ -7,6 +7,28 @@ import (
 
 // atomone, atomtwo, etc are defined in sexpr_test.go
 
+func TestEvaluateArithmetic(t *testing.T) {
+	var tests = []struct{
+		input string
+		want []Sexpr
+	} {
+		{ "(+ 1 2)", []Sexpr{ atomthree } },
+		{ "(+ 1 (+ 1 1))", []Sexpr{ atomthree } },
+		// TODO:  Precision, on numbers
+		{
+			"(+ 1 3.141593)",
+			[]Sexpr{ mkAtomNumber("4.141593") },
+		},
+		{ "(+ 1 2 3 4 5)", []Sexpr{ mkAtomNumber("15") } },
+		{ "(- 5 2)", []Sexpr{ atomthree } },
+	}
+
+	for _, test := range tests {
+		resetEvaluationContext()
+		helpConfirmEvaluation(test.input, test.want, t)
+	}
+}
+
 func TestEvaluateEqQ(t *testing.T) {
 	var tests = []struct{
 		input string
@@ -14,8 +36,6 @@ func TestEvaluateEqQ(t *testing.T) {
 	} {
 		{ "(eq? 1 2)", []Sexpr{ False } },
 		{ "(eq? 2 2)", []Sexpr{ True } },
-		{ "(+ 1 2)", []Sexpr{ atomthree } },
-		{ "(+ 1 (+ 1 1))", []Sexpr{ atomthree } },
 		{ "(eq? (+ 1 2) 3)", []Sexpr{ True } },
 		{ "(car (cons 1 2))", []Sexpr{ atomone } },
 		{ "(eq? (car (cons 1 2)) 1)", []Sexpr{ True } },
@@ -24,11 +44,6 @@ func TestEvaluateEqQ(t *testing.T) {
 		{ "()", []Sexpr{ Nil } },
 		{ "'1", []Sexpr{ atomone } },
 		{ "(cons '1 ())", []Sexpr{ mkList(atomone) } },
-		// TODO:  Precision, on numbers
-		{
-			"(+ 1 3.141593)",
-			[]Sexpr{ mkAtomNumber("4.141593") },
-		},
 		{
 			"(define a 2)(eq? 2 a)",
 			[]Sexpr{ Nil, True },
