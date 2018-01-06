@@ -13,23 +13,28 @@ type func_expr struct{
 	definition string
 	bound []sexpr_atom // Need to be x.typ == atomSymbol
 	body Sexpr
+	ctx *evaluationContext
 }
 func (f func_expr) Sprint() string {
 	return fmt.Sprintf("fn:%s", f.definition)
 }
-func declareFunction(description string, bound []sexpr_atom, body Sexpr) (*func_expr, error) {
+func declareFunction(
+	description string,
+	bound []sexpr_atom,
+	body Sexpr,
+	ctx *evaluationContext) (*func_expr, error) {
 	for _, v := range bound {
 		if v.typ != atomSymbol { // TODO:  Symbols become their own things?
 			msg := fmt.Sprintf("Invalid parameter-name %q", v)
 			return nil, errors.New(msg)
 		}
 	}
-	return &func_expr{description, bound, body}, nil
+	return &func_expr{description, bound, body, ctx}, nil
 }
-func (f func_expr) apply(args []Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-	newCtx := &evaluationContext{make(symbolTable), ctx}
+func (f func_expr) apply(args []Sexpr) (Sexpr, sexpr_error) {
+	newCtx := &evaluationContext{make(symbolTable), f.ctx}
 	for idx, sym := range f.bound {
-		if val, err := evaluateWithContext(args[idx], ctx) ; err != nil {
+		if val, err := evaluateWithContext(args[idx], f.ctx) ; err != nil {
 			return nil, err
 		} else {
 			newCtx.bind(sym, val)
@@ -72,7 +77,7 @@ var primitiveMacros = map[string]evaluator {
 	"define": evalDefine,
 	"let":    evalLet,
 	"pair?":  mkTodoEvaluator("pair?"),
-	"lambda": mkTodoEvaluator("lambda"),
+	"lambda": evalLambda,
 	"and":    mkTodoEvaluator("and"),
 	"or":     mkTodoEvaluator("or"),
 	"if":     mkTodoEvaluator("if"),
@@ -394,4 +399,46 @@ func evalLet(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 		return nil, err
 	}
 	return val, nil
+}
+
+func evalLambda(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
+	args, err := requireArgCount(lst, "lambda", 2, nil) // eventually "many"
+	if err != nil {
+		return nil, err
+	}
+	var bound []sexpr_atom
+	if decl, unconsify_err := unconsify(args[0]) ; unconsify_err != nil {
+		return nil, evaluationError{
+			"lambda",
+			fmt.Sprintf("Strange arguments %q:", lst, unconsify_err.Error()),
+		}
+	} else {
+		for _, v := range decl {
+			switch v := v.(type) {
+			case sexpr_atom:
+				if v.typ == atomSymbol {
+					bound = append(bound, v)
+				} else {
+					msg := fmt.Sprintf("Invalid parameter-name %q", v)
+					return nil, evaluationError{"lambda", msg}
+				}
+			default:
+				return nil, evaluationError{
+					"lambda",
+					fmt.Sprintf("invalid parameter list in (λ %s %s)",
+						args[0], args[1]),
+				}
+			}
+		}
+	}
+	ans, declare_err := declareFunction(
+		fmt.Sprintf("(λ %s %s)", args[0], args[1]),
+		bound,
+		args[1],
+		ctx,
+	)
+	if declare_err != nil {
+		return nil, evaluationError{"lambda", err.Error()}
+	}
+	return *ans, nil
 }

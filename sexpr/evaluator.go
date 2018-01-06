@@ -51,12 +51,18 @@ func evaluateWithContext(s Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 		}
 		switch car := car.(type) {
 		case func_expr:
-			args, err := unconsify(s.cdr) ; if err != nil {
+			// Functions evaluate their arguments in the current context
+			args, err := requireArgCount(
+				s.cdr, "(eval)", -1, ctx,
+			)
+			if err != nil {
 				return nil, evaluationError{"(eval)", err.Error()}
 			} else {
-				return car.apply(args, ctx)
+				return car.apply(args)
 			}
-		case macro_expr: return car.apply(s.cdr, ctx)
+		case macro_expr:
+			// Macros might do anything; give it the context
+			return car.apply(s.cdr, ctx)
 		default:
 			msg := fmt.Sprintf("Attempt to apply non-procedure %q", car)
 			return nil, evaluationError{"(eval)", msg}

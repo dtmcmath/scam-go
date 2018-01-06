@@ -202,6 +202,13 @@ func TestEvaluatorLambda(t *testing.T) {
 `,
 			[]Sexpr{ Nil, True },
 		},
+		{
+			`
+(define add1 (lambda (x) (+ x 1)))
+(add1 2)
+`,
+			[]Sexpr{ Nil, atomthree },
+		},
 	}
 
 	for _, test := range tests {
