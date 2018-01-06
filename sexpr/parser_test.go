@@ -9,8 +9,7 @@ func TestSimpleParse(t *testing.T) {
 	atomone := mkAtomNumber("1")
 	atomtwo := mkAtomNumber("2")
 
-	primcons := atomPrimitives["cons"]
-	primquote := atomPrimitives["quote"]
+	primcons := mkAtomSymbol("cons")
 	var tests = []struct {
 		input string
 		want []Sexpr
@@ -43,17 +42,17 @@ func TestSimpleParse(t *testing.T) {
 		{
 			"'()",
 			[]Sexpr{
-				mkList(primquote, Nil),
+				mkList(Quote, Nil),
 			},
 		},
 		{
 			"'1",
-			[]Sexpr{ mkList(primquote, atomone) },
+			[]Sexpr{ mkList(Quote, atomone) },
 		},
 		{
 			"(cons '1 ())",
 			[]Sexpr{
-				mkList(primcons, mkList(primquote, atomone), Nil),
+				mkList(primcons, mkList(Quote, atomone), Nil),
 			},
 		},
 		{

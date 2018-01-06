@@ -76,11 +76,6 @@ func (a sexpr_atom) String() string {
 func (a sexpr_atom) evaluate(ctx *evaluationContext) (Sexpr, sexpr_error) {
 	switch a.typ {
 	case atomSymbol:
-		// The primitives are just themselves (for now)
-		if _, ok := atomPrimitives[a.name] ; ok {
-			return a, nil
-		}
-		// else
 		if val, ok := ctx.lookup(a) ; !ok {
 			return nil, evaluationError{
 				"lookup",

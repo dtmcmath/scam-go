@@ -69,45 +69,6 @@ I really want a keyword "*lambda*".  With that, we could define
 (define cdr (lambda (c) (c 'cdr)))
 #+END_SRC
 
-*** New expression type: function (and macro)
-
-A function is something to which we can apply
-
-#+BEGIN_SRC go
-func apply_fn(f func_expr, args []Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-  newCtx := &evaluationContext{make(symbolTable), ctx}
-  for idx, sym := f.bound {
-    newCtx.bind(sym, evaluateWithContext(args[idx], ctx))
-  }
-  return evaluteWithContext(f.body, newCtx)
-}
-#+END_SRC
-
-A macro (operator?) is similar but more complicated.  Each macro needs
-its own evaluator, because they all have funky rules.  =define=,
-=lambda=, =let=, =or=, =+=, and =quote= are all examples of macros.
-There are more.
-
-*** Simplify evaluate
-
-#+BEGIN_SRC go
-func evaluateWithContext(s Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
-	switch s := s.(type) {
-	case sexpr_atom: return s.evaluate(ctx)
-	case sexpr_cons:
-		car, err := evaluateWithContext(s.car, ctx)
-		if err != nil {
-			return nil, err
-		}
-		switch car := car.(type) {
-		case func_expr: return apply_fn(car, unconsify(s.cdr), ctx)
-                case macro_expr: return car.apply(s.cdr, ctx)
-                defult:
-                        return nil, evaluationError{... non function ...}
-                }
-...
-#+ENV_SRC
-
 *** Notation for primitive symbols
 
 It'll be good to have a way to tell whether a symbol can be re-bound
