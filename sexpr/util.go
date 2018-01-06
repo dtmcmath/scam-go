@@ -104,3 +104,6 @@ func mkRuneChannel(in string) <-chan rune {
 	}()
 	return ans
 }
+
+// isFalsey says whether "if" should skip it.  Only False and Nil are falsey.
+func isFalsey(s Sexpr) bool { return s == Nil || s == False }
