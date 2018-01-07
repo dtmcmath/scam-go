@@ -79,7 +79,7 @@ and type.
 Or
 
     go run scam_server.go -port 8000 &
-    echo "(eq? (car (cons 1 2) 2))" | nc localhost 8000
+    echo "(= (car (cons 1 2) 2))" | nc localhost 8000
 
 ## For further reading
 
