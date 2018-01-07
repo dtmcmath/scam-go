@@ -7,36 +7,70 @@ import (
 
 // atomone, atomtwo, etc are defined in sexpr_test.go
 
-func TestEvaluateEqQ(t *testing.T) {
+func TestEvaluateArithmetic(t *testing.T) {
 	var tests = []struct{
 		input string
 		want []Sexpr
 	} {
-		{ "(eq? 1 2)", []Sexpr{ False } },
-		{ "(eq? 2 2)", []Sexpr{ True } },
 		{ "(+ 1 2)", []Sexpr{ atomthree } },
 		{ "(+ 1 (+ 1 1))", []Sexpr{ atomthree } },
-		{ "(eq? (+ 1 2) 3)", []Sexpr{ True } },
-		{ "(car (cons 1 2))", []Sexpr{ atomone } },
-		{ "(eq? (car (cons 1 2)) 1)", []Sexpr{ True } },
-		{ "(eq? (cons 1 2) (cons 1 2))", []Sexpr{ False } },
-		{ "'()", []Sexpr{ Nil } },
-		{ "()", []Sexpr{ Nil } },
-		{ "'1", []Sexpr{ atomone } },
-		{ "(cons '1 ())", []Sexpr{ mkList(atomone) } },
 		// TODO:  Precision, on numbers
 		{
 			"(+ 1 3.141593)",
 			[]Sexpr{ mkAtomNumber("4.141593") },
 		},
 		{
-			"(define a 2)(eq? 2 a)",
+			"(+ 2.718281 3.141593)",
+			[]Sexpr{ mkAtomNumber("5.859874") },
+		},
+		{ "(+ 1 2 3 4 5)", []Sexpr{ mkAtomNumber("15") } },
+		{ "(- 5 2)", []Sexpr{ atomthree } },
+		{ "(= 1 2)", []Sexpr{ False } },
+		{ "(= 2 2)", []Sexpr{ True } },
+		{ "(= (+ 1 2) 3)", []Sexpr{ True } },
+	}
+
+	for _, test := range tests {
+		resetEvaluationContext()
+		helpConfirmEvaluation(test.input, test.want, t)
+	}
+}
+
+func ExampleArithmetic() {
+	s := "(- 3 2 1)"
+
+	_, ch := Parse("repl", mkRuneChannel(s))
+	for sx := range ch {
+		fmt.Println("Evaluating", sx.Sprint())
+		val := Evaluate(sx)
+		fmt.Println("gave", val)
+	}
+	// Output:
+	// Evaluating (- 3 2 1)
+	// gave Exception in -: Expected 2 arguments, got 3
+}
+
+func TestEvaluateEqQ(t *testing.T) {
+	var tests = []struct{
+		input string
+		want []Sexpr
+	} {
+		{ "(car (cons 1 2))", []Sexpr{ atomone } },
+		{ "(= (car (cons 1 2)) 1)", []Sexpr{ True } },
+		{ "(eq? (cons 1 2) (cons 1 2))", []Sexpr{ False } },
+		{ "'()", []Sexpr{ Nil } },
+		{ "()", []Sexpr{ Nil } },
+		{ "'1", []Sexpr{ atomone } },
+		{ "(cons '1 ())", []Sexpr{ mkList(atomone) } },
+		{
+			"(define a 2)(= 2 a)",
 			[]Sexpr{ Nil, True },
 		},
 		{
 			"(define a 1)(define b 2)(cons a b)",
 			[]Sexpr{ Nil, Nil, mkCons(atomone, atomtwo) },
 		},
+		{ "(eq? '() '())", []Sexpr{ True } },
 	}
 
 	for _, test := range tests {
@@ -135,7 +169,7 @@ func TestEvaluatorBinding(t *testing.T) {
 			`
 (define a 1)
 (define b 2)
-(let ([a 3] [b 4]) (eq? 7 (+ a b)))
+(let ([a 3] [b 4]) (= 7 (+ a b)))
 `,
 			[]Sexpr{ Nil, Nil, True },
 		},
@@ -148,7 +182,7 @@ func TestEvaluatorBinding(t *testing.T) {
 			[]Sexpr{ Nil, Nil, mkAtomNumber("6") },
 		},
 		{
-			"(let ([a 3] [b 4]) (eq? 7 (+ a b)))",
+			"(let ([a 3] [b 4]) (= 7 (+ a b)))",
 			[]Sexpr{ True },
 		},
 		{ // Shadowing, no leaking
@@ -173,7 +207,7 @@ func TestEvaluatorBinding2(t *testing.T) {
 	resetEvaluationContext()
 	program1 := `
 (define alpha 1)
-(eq? alpha 1)`
+(= alpha 1)`
 	_, sexprs := Parse("test", mkRuneChannel(program1))
 	s1_1 := <- sexprs
 	s1_1 = Evaluate(s1_1)
@@ -183,7 +217,7 @@ func TestEvaluatorBinding2(t *testing.T) {
 	s1_2 := <- sexprs
 	s1_2 = Evaluate(s1_2)
 	if s1_2 != True {
-		t.Errorf("Binding: (eq? alpha 1) got %v, want #t", s1_2)
+		t.Errorf("Binding: (= alpha 1) got %v, want #t", s1_2)
 	}
 	_, ok := <- sexprs
 	if ok {
@@ -191,7 +225,7 @@ func TestEvaluatorBinding2(t *testing.T) {
 	}
 
 	resetEvaluationContext()
-	program2 := "(eq? alpha 1)"
+	program2 := "(= alpha 1)"
 	_, sexprs = Parse("test", mkRuneChannel(program2))
 	s2_1 := <- sexprs
 	s2_1 = Evaluate(s2_1)
@@ -210,9 +244,9 @@ func TestEvaluatorBinding2(t *testing.T) {
 	
 	resetEvaluationContext()
 	program3 := `
-(eq? alpha 1)
+(= alpha 1)
 (define alpha 1)
-(eq? alpha 1)
+(= alpha 1)
 `
 	_, sexprs = Parse("test", mkRuneChannel(program3))
 	s3_1 := <- sexprs
@@ -233,7 +267,7 @@ func TestEvaluatorBinding2(t *testing.T) {
 	s3_3 := <- sexprs
 	s3_3 = Evaluate(s3_3)
 	if s3_3 != True {
-		t.Errorf("Binding: (eq? alpha 1) got %v, want #t", s3_3)
+		t.Errorf("Binding: (= alpha 1) got %v, want #t", s3_3)
 	}
 	_, ok = <- sexprs
 	if ok {
@@ -251,7 +285,7 @@ func TestEvaluatorLambda(t *testing.T) {
 		{
 			`
 (define add1 (lambda (x) (+ x 1)))
-(eq? (add1 1) 2)
+(= (add1 1) 2)
 `,
 			[]Sexpr{ Nil, True },
 		},
@@ -293,9 +327,9 @@ func TestEvaluatorLambda(t *testing.T) {
 func ExampleEvaluatorBinding() {
 	resetEvaluationContext()
 	program := `
-(eq? a 1)
+(= a 1)
 (define a 1)
-(eq? a 1)`
+(= a 1)`
 
 	_, sexprs := Parse("test", mkRuneChannel(program))
 	for sx := range sexprs {
@@ -305,16 +339,16 @@ func ExampleEvaluatorBinding() {
 		fmt.Printf("> %s\n%s\n", in, out)
 	}
 	// Output:
-	// > (eq? a 1)
+	// > (= a 1)
 	// Exception in lookup: Variable Sym(a) is not bound
 	// > (define a 1)
 	// ()
-	// > (eq? a 1)
+	// > (= a 1)
 	// #t
 }
 
 func ExampleEvaluator() {
-	s := "(cons 1 2) (eq? (car (cons 1 2)) 1)"
+	s := "(cons 1 2) (= (car (cons 1 2)) 1)"
 
 	_, ch := Parse("repl", mkRuneChannel(s))
 	for sx := range ch {
@@ -325,7 +359,7 @@ func ExampleEvaluator() {
 	// Output:
 	// Evaluating Cons(Sym(cons), Cons(1, Cons(2, Nil)))
 	// gave Cons(1, 2)
-	// Evaluating Cons(Sym(eq?), Cons(Cons(Sym(car), Cons(Cons(Sym(cons), Cons(1, Cons(2, Nil))), Nil)), Cons(1, Nil)))
+	// Evaluating Cons(Sym(=), Cons(Cons(Sym(car), Cons(Cons(Sym(cons), Cons(1, Cons(2, Nil))), Nil)), Cons(1, Nil)))
 	// gave #t
 }
 

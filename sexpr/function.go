@@ -3,6 +3,7 @@ package sexpr
 import (
 	"strconv"
 	"fmt"
+	"errors"
 )
 
 // Functions are first class objects.  The file defines operations
@@ -66,36 +67,15 @@ func mkTodoApplicator(s string) applicator {
 }
 
 var primitiveFunctions = map[string]applicator {
-	"-":      mkTodoApplicator("-"),
-	"+":      mkArithmeticReduce(
-		"+",
-		intOrFloat{
-			asint: 0,
-			asfloat: 0,
-			isInt: true,
-		},
-		reducePlus,
-	),
+	"-":      mkNaryFn("-", 2, fnMinus),
+	"+":      mkArithmeticReduce("+", zeroIntOrFloat, reducePlus),
 	"cons":   mkNaryFn("cons", 2, func(args []Sexpr) (Sexpr, sexpr_error) {
 		return mkCons(args[0], args[1]), nil
 	}),
 	"car":    mkConsSelector("car", func (c sexpr_cons) Sexpr { return c.car }),
 	"cdr":    mkConsSelector("cdr", func (c sexpr_cons) Sexpr { return c.cdr }),
-	"eq?":    mkNaryFn("eq?", 2, func(args []Sexpr) (Sexpr, sexpr_error) {
-		if args[0] == args[1] {
-			return True, nil
-		} else {
-			// TODO:  Be nice with numbers?  The Little Schemer says
-			//
-			// ; (eq? 5 6)
-			// ; not-applicable because eq? works only on non-numeric atom
-			//
-			// so we're already being generous by saying True sometimes.
-			// For the record, the problem is that "3.0" and "3" and
-			// "3.00" are all different atoms.
-			return False, nil
-		}
-	}),
+	"=":      mkNaryFn("=", 2, fnEqualNumber),
+	"eq?":    mkNaryFn("eq?", 2, fnEqualAtom),
 	"null?":  mkNaryFn("null?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
 		if args[0] == Nil {
 			return True, nil
@@ -118,6 +98,23 @@ var primitiveFunctions = map[string]applicator {
 			return True, nil
 		}
 	}),
+	"zero?":  mkNaryFn("pair?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
+		if args[0] == Zero {
+			return True, nil
+		} else {
+			return False, nil
+		}
+	}),
+	"number?":  mkNaryFn("pair?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
+		switch a := args[0].(type) {
+		case sexpr_atom:
+			if a.typ == atomNumber {
+				return True, nil
+			}
+		}
+		// else
+		return False, nil
+	}),
 }
 /////
 // Helpers
@@ -127,10 +124,14 @@ var primitiveFunctions = map[string]applicator {
 // its arguments after they've been evaluated.
 func mkNaryFn(name string, n int, fn func([]Sexpr) (Sexpr, sexpr_error)) applicator {
 	return func(args []Sexpr) (Sexpr, sexpr_error) {
+		if len(args) != n {
+			msg := fmt.Sprintf("Expected %d arguments, got %d", n, len(args))
+			return nil, evaluationError{name, msg}
+		}
 		ans, err := fn(args)
 		if err != nil {
 			// divide-by-zero, for instance
-			return nil, err
+			return nil, evaluationError{name, err.Error()}
 		}
 		return ans, nil
 	}
@@ -185,6 +186,38 @@ type intOrFloat struct{
 	isInt   bool
 }
 
+var zeroIntOrFloat = intOrFloat{0, 0.0, true}
+
+func parseIntOrFloat(s Sexpr) (*intOrFloat, error) {
+	var numberString string
+	switch s := s.(type) {
+	case sexpr_atom:
+		if s.typ != atomNumber {
+			msg := fmt.Sprintf("Atom %q is not a number", s)
+			return nil, errors.New(msg)
+		} else {
+			numberString = s.name
+		}
+	default:
+		msg := fmt.Sprintf("%q is not a number", s)
+		return nil, errors.New(msg)
+	}
+	// else, numberString is the thing to parse
+	ival, err := strconv.ParseInt(numberString, 10, 64)
+	if err == nil {
+		// It's an integer
+		return &intOrFloat{ival, float64(ival), true}, nil
+	}
+	// else
+	fval, err := strconv.ParseFloat(numberString, 64)
+	if err == nil {
+		// It's a float; the integer part is irrelevant
+		return &intOrFloat{0, fval, false}, nil
+	} else {
+		return nil, err
+	}
+}
+
 func (i intOrFloat) String() string {
 	if i.isInt {
 		return fmt.Sprintf("%d", i.asint)
@@ -192,72 +225,104 @@ func (i intOrFloat) String() string {
 		return fmt.Sprintf("%f", i.asfloat)
 	}
 }
+func (i intOrFloat) Sexprize() Sexpr {
+	return mkAtomNumber(fmt.Sprintf("%s", i))
+}
 
-func mkArithmeticReduce(
-	name string,
-	acc intOrFloat,
-	reducer func(acc intOrFloat, val Sexpr) (intOrFloat, sexpr_error, bool),
-) applicator {
-	return func(args []Sexpr) (Sexpr, sexpr_error) {
-		ans := acc
-		var ( // Declare outside the loop, else ans is shadowed
-			err sexpr_error
-			done bool
-		)
-		for _, val := range args {
-			if ans, err, done = reducer(ans, val) ; done {
-				break
-			} else if err != nil {
-				// Like, "divide by zero" or "incompatible types"
-				return nil, evaluationError{name, err.Error()}
-			}
-		}
-		if err != nil {
-			// Pretend the reducer's error is our error.
-			err = evaluationError{name, err.Error()}
-		}
-		return mkAtomNumber(fmt.Sprintf("%s", ans)), err
+// add m to n, destructively modifying n.  Like +=
+func (n *intOrFloat) increaseBy(m intOrFloat) {
+	n.asint   += m.asint
+	n.asfloat += m.asfloat
+	if n.isInt {
+		n.isInt = m.isInt
+	}
+}
+// subtract m from n, destructively modifying n.  Like -=
+func (n *intOrFloat) decreaseBy(m intOrFloat) {
+	n.asint   -= m.asint
+	n.asfloat -= m.asfloat
+	if n.isInt {
+		n.isInt = m.isInt
 	}
 }
 
-func reducePlus(acc intOrFloat, summand Sexpr) (intOrFloat, sexpr_error, bool) {
-	switch summand := summand.(type) {
-	case sexpr_atom:
-		if summand.typ == atomNumber {
-			if acc.isInt {
-				val, err := strconv.ParseInt(summand.name, 10, 64)
-				if err != nil {
-					// Time to give up on the idea that we have an int.
-					acc.isInt = false
-					acc.asfloat = float64(acc.asint)
-				} else {
-					acc.asint += val
-					return acc, nil, false
-				}
+type arithmeticReducerFunction func(*intOrFloat, intOrFloat)
+
+func mkArithmeticReduce(
+	name string,
+	starter intOrFloat,
+	reducer arithmeticReducerFunction,
+) applicator {
+	return func(args []Sexpr) (Sexpr, sexpr_error) {
+		acc := starter // makes a copy!
+		for _, val := range args {
+			iorf, err := parseIntOrFloat(val)
+			if err != nil {
+				return nil, evaluationError{name, err.Error()}
 			}
-			// NOT else; isInt might have changed!
-			if !acc.isInt {
-				val, err := strconv.ParseFloat(summand.name, 64)
-				if err != nil {
-					return acc, // should be ignored; can't be nil
-					evaluationError{
-						"",
-						fmt.Sprintf("%s masquerades as a Number!!", summand),
-					},
-					true
-				} else {
-					acc.asfloat += val
-					return acc, nil, false
-				}
+			// else, destructively modify the accumulator
+			reducer(&acc, *iorf)
+		}
+		return acc.Sexprize(), nil
+	}
+}
+
+func reducePlus(acc *intOrFloat, addend intOrFloat) {
+	acc.increaseBy(addend)
+}
+
+func fnMinus(args []Sexpr) (Sexpr, sexpr_error) {
+	minuend, err := parseIntOrFloat(args[0])
+	if err != nil {
+		return nil, evaluationError{"-", err.Error()}
+	}
+	subtrahend, err := parseIntOrFloat(args[1])
+	if err != nil {
+		return nil, evaluationError{"-", err.Error()}
+	}
+	// else
+	minuend.decreaseBy(*subtrahend)
+	return minuend.Sexprize(), nil
+}
+
+func mkEqualAtomChecker(typ atomType) applicator {
+	return func(args []Sexpr) (Sexpr, sexpr_error) {
+		var atoms []sexpr_atom
+		for _, arg := range args {
+			switch arg := arg.(type) {
+			case sexpr_atom:
+				atoms = append(atoms, arg)
+			default:
+				return False, nil
 			}
 		}
+		// reaching here, we have atoms
+		// Assume at least one; n-ary 2 (probably)
+		if atoms[0].typ != typ {
+			return False, nil
+		}
+		// now check all the rest are the same
+		for i := 0 ; 1+i < len(atoms) ; i++ {
+			if atoms[1+i] != atoms[i] {
+				return False, nil
+			}
+		}
+		return True, nil
 	}
-	// else, it's either a non-atom or a non-number atom
-	return acc, evaluationError{
-		"",
-		fmt.Sprintf("%s is not a number", summand),
-	},
-	true
+}
+var fnEqualNumber = mkEqualAtomChecker(atomNumber)
+var fnEqualSymbol = mkEqualAtomChecker(atomSymbol)
+func fnEqualAtom(args []Sexpr) (Sexpr, sexpr_error) {
+	if args[0] == Nil {
+		for i := 1 ; i < len(args) ; i++ {
+			if args[i] != Nil {
+				return False, nil
+			}
+		}
+		return True, nil
+	}
+	// else
+	return fnEqualSymbol(args)
 }
 
 // evalQuote is a macro; it does not evaluate all its arguments

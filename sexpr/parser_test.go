@@ -59,6 +59,10 @@ func TestSimpleParse(t *testing.T) {
 			"'(#t)",
 			[]Sexpr{mkList(Quote, mkList(True))},
 		},
+		{
+			"o o+",
+			[]Sexpr{ mkAtomSymbol("o"), mkAtomSymbol("o+") },
+		},
 		// {
 		// 	"(eq? (car (cons 1 2)) 1)",
 		// 	// Bleh.  I've lost track!!!
