@@ -274,7 +274,7 @@ var (
 func init() {
 	isPartOfASymbol = func() runeTester {
 		// Oversimplified from https://www.scheme.com/tspl4/grammar.html#grammar:symbols
-		l := mkLookupFunc("*$><=^")
+		l := mkLookupFunc("*+-^$/><=?") // "-" and "?" are punctuation
 		return func (r rune) bool {
 			switch {
 			case unicode.IsLetter(r), l(r), '0' <= r && r <= '9' :
