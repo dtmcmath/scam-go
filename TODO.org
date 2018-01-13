@@ -28,34 +28,7 @@ Written up as [[./issues/issue1.org][issue #1]].
 
 * Desiderata
 
-** λ
-
-If you want to be super-clever, try
-
-#+BEGIN_SRC scheme
-(define conz
-  (lambda (a b)
-    (lambda (c)
-      (c a b))))
-(define carr
-  (lambda (c)
-    (c (lambda (a b) a))))
-(define cdrr
-  (lambda (c)
-    (c (lambda (a b) b))))
-
-(define trick (conz 'mind 'blown))
-(eq? (carr trick) 'mind)
-(eq? (cdrr trick) 'blown)
-#+END_SRC
-
-Sadly, I had to look that one up.  I knew there was /some/ clever way
-to =cons=/=car=/=cdr= from λ, but the only way I remembered was to use
-=eq?=.  Which is really cheating.
-
-This is [[./examples/lambda-the-ultimate-trick.ss][in the examples]].
-
-*** Notation for primitive symbols
+** Notation for primitive symbols
 
 It'll be good to have a way to tell whether a symbol can be re-bound
 or not.
@@ -85,11 +58,7 @@ Don't you wonder what
 
 is?
 
-** Implement (more) keywords
-
-- *begin*
-- ???
-
+  
 * Roadmap
 
 This section tries to put some of the developments into a sequence.

@@ -1,12 +1,14 @@
 # SCAM, A Schemelike Computational Algorithm Machine
 
-The goal of this project is to implement, in Go, enough of a Scheme
-interpreter to get through the examples in
+The goal of this project has been to implement, in Go, enough of a
+Scheme interpreter to get through the examples in
 [_The Little Schemer_ (4th edition)](https://mitpress.mit.edu/books/little-schemer)
 by Daniel Friedman and Matthias Felleisen.  Helpfully,
 [all the examples from the book](https://github.com/pkrumins/the-little-schemer)
 are available, so that will become a test suite.  Thanks, Peter
 Krumins.
+
+This goal was accomplished around rev. c37065c.
 
 
 ## Motivation
