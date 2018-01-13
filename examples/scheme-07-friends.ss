@@ -8,13 +8,40 @@
 ; Get yourself this wonderful book at Amazon: http://bit.ly/4GjWdP
 ;
 
+; eqan? function from Chapter 4 ()
+(define eqan?
+  (lambda (a1 a2)
+    (cond
+     ((and (number? a1) (number? a2))
+      (= a1 a2))
+     ((or (number? a1) (number? a2))
+      #f)
+     (else (eq? a1 a2)))))
+
+; eqlist?, and equal?? functions from Chapter 5 ()
+(define eqlist?
+  (lambda (l1 l2)
+    (cond
+      ((and (null? l1) (null? l2)) #t)
+      ((or (null? l1) (null? l2)) #f)
+      (else
+       (and (equal?? (car l1) (car l2))
+            (eqlist? (cdr l1) (cdr l2)))))))
+(define equal??
+  (lambda (s1 s2)
+    (cond
+     ((and (atom? s1) (atom? s2))
+      (eqan? s1 s2))
+     ((or (atom? s1) (atom? s2))
+      #f)
+     (else (eqlist? s1 s2)))))
 ; member function from Chapter 2 (02-do-it-again.ss)
-;
+                                        ;
 (define member?
   (lambda (a lat)
     (cond
       ((null? lat) #f)
-      (else (or (eq? (car lat) a)
+      (else (or (equal?? (car lat) a)
                 (member? a (cdr lat)))))))
 
 ; atom? function from Chapter 1 (01-toys.ss)
@@ -67,7 +94,7 @@
   (lambda (a lat)
     (cond
       ((null? lat) '())
-      ((eq? (car lat) a)
+      ((equal?? (car lat) a)
        (multirember a (cdr lat)))
       (else
         (cons (car lat) (multirember a (cdr lat)))))))
