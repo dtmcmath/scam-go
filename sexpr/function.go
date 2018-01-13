@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"fmt"
 	"errors"
+	"math"
 )
 
 // Functions are first class objects.  The file defines operations
@@ -69,6 +70,7 @@ func mkTodoApplicator(s string) applicator {
 var primitiveFunctions = map[string]applicator {
 	"-":      mkNaryFn("-", 2, fnMinus),
 	"+":      mkArithmeticReduce("+", zeroIntOrFloat, reducePlus),
+	"expt":   mkNaryFn("expt", 2, fnExponent),
 	"cons":   mkNaryFn("cons", 2, func(args []Sexpr) (Sexpr, sexpr_error) {
 		return mkCons(args[0], args[1]), nil
 	}),
@@ -245,6 +247,35 @@ func (n *intOrFloat) decreaseBy(m intOrFloat) {
 		n.isInt = m.isInt
 	}
 }
+// raise n to the power m, desructively modifying n
+func (n *intOrFloat) toPower(m intOrFloat) {
+	if m.isInt {
+		intOrig := n.asint
+		if m.asint == 0 {
+			// TODO:  Assert n != 0
+			n.asint = 1
+			n.asfloat = 1
+			n.isInt = true
+			return
+		} else if m.asint > 0 {
+			for i := int64(1) ; i < m.asint ; i++ {
+				n.asint *= intOrig
+			}
+		} else {
+			// Fraction...
+			// TODO:  Assert n != 0
+			n.asfloat = 1/n.asfloat
+			for i := int64(1) ; i < -m.asint ; i++ {
+				n.asfloat /= float64(intOrig)
+			}
+			n.isInt = false
+		}
+	}
+	n.asfloat = math.Pow(n.asfloat, m.asfloat)
+	if n.isInt {
+		n.isInt = m.isInt // Bleh... m is 1/2??
+	}
+}
 
 type arithmeticReducerFunction func(*intOrFloat, intOrFloat)
 
@@ -283,6 +314,19 @@ func fnMinus(args []Sexpr) (Sexpr, sexpr_error) {
 	// else
 	minuend.decreaseBy(*subtrahend)
 	return minuend.Sexprize(), nil
+}
+func fnExponent(args []Sexpr) (Sexpr, sexpr_error) {
+	base, err := parseIntOrFloat(args[0])
+	if err != nil {
+		return nil, evaluationError{"-", err.Error()}
+	}
+	exponent, err := parseIntOrFloat(args[1])
+	if err != nil {
+		return nil, evaluationError{"-", err.Error()}
+	}
+	// else
+	base.toPower(*exponent)
+	return base.Sexprize(), nil
 }
 
 func mkEqualAtomChecker(typ atomType) applicator {
