@@ -1,3 +1,14 @@
+; Functions that only SCAM needs:
+(define even?
+  (lambda (n)
+    (cond ([zero? n] #t)
+          ([zero? (- n 1)] #f)
+          (else (even? (- n 2))))))
+(define length
+  (lambda (l)
+    (cond ([null? l] 0)
+          (else (+ 1 (length (cdr l)))))))
+
 ;
 ; Chapter 8 of The Little Schemer:
 ; Lambda the Ultimate
