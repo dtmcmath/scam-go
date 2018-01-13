@@ -8,16 +8,16 @@
      (lambda (f)
        (le (lambda (x) ((f f) x)))))))
 
-(define length-without-recursion
+(define length-Y
   (Y (lambda (length)
        (lambda (l)
          (cond ([null? l] 0)
                (else (add1 (length (cdr l)))))))))
 
-(length-without-recursion '(a b c d e))
+(length-Y '(a b c d e))
 ; ==> 5
 
-(define rember-without-recursion
+(define rember-Y
   (lambda (a l)
     ((Y (lambda (rember-a)
           (lambda (l)
@@ -26,11 +26,11 @@
                   (else (cons (car l) (rember-a (cdr l))))))))
      l)))
 
-(rember-without-recursion 'a '(a b c d))
+(rember-Y 'a '(a b c d))
 ; ==> '(b c d)
-(rember-without-recursion 'b '(a b c d))
+(rember-Y 'b '(a b c d))
 ; ==> '(a c d)
-(rember-without-recursion 'c '(a b c d))
+(rember-Y 'c '(a b c d))
 ; ==> '(a b d)
-(rember-without-recursion 'd '(a b c d))
+(rember-Y 'd '(a b c d))
 ; ==> '(a b c)

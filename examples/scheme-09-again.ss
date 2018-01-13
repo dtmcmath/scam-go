@@ -1,3 +1,11 @@
+; Functions that only SCAM needs:
+(define sub1 (lambda (n) (- n 1)))
+(define add1 (lambda (n) (+ n 1)))
+(define even?
+  (lambda (n)
+    (cond ([zero? n] #t)
+          ([zero? (sub1 n)] #f)
+          (else (even? (- n 2))))))
 ;
 ; Chapter 8 of The Little Schemer:
 ; ...and Again, and Again, and Again, ...
@@ -145,7 +153,7 @@
 ;
 (shuffle '(a (b c)))                          ; '(a (b c))
 (shuffle '(a b))                              ; '(a b)
-(shuffle '((a b) (c d)))                      ; infinite swap pora  Ctrl + c  to break and input q to exit
+;(shuffle '((a b) (c d)))                      ; infinite swap pora  Ctrl + c  to break and input q to exit
 
 ; The one? function is true when n=1
 ;
@@ -299,3 +307,30 @@
     ((lambda (f) (f f))
      (lambda (f)
        (le (lambda (x) ((f f) x)))))))
+
+(define length-Y
+  (Y (lambda (length)
+       (lambda (l)
+         (cond ([null? l] 0)
+               (else (add1 (length (cdr l)))))))))
+
+(length-Y '(a b c d e))
+; ==> 5
+
+(define rember-Y
+  (lambda (a l)
+    ((Y (lambda (rember-a)
+          (lambda (l)
+            (cond ([null? l] '())
+                  ([eq? a (car l)] (cdr l))
+                  (else (cons (car l) (rember-a (cdr l))))))))
+     l)))
+
+(rember-Y 'a '(a b c d))
+; ==> '(b c d)
+(rember-Y 'b '(a b c d))
+; ==> '(a c d)
+(rember-Y 'c '(a b c d))
+; ==> '(a b d)
+(rember-Y 'd '(a b c d))
+; ==> '(a b c)

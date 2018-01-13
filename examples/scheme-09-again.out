@@ -1,0 +1,54 @@
+SCAM Version 0.1
+Please be gentle
+
+> ()
+> ()
+> ()
+> ()
+> ()
+> Exception in lookup: Variable Sym(keep-looking) is not bound
+> Exception in lookup: Variable Sym(keep-looking) is not bound
+> ()
+> ()
+> ()
+> ()
+> ()
+> ()
+> (a (b c))
+> (a (b (c d)))
+> ()
+> ()
+> ()
+> ()
+> ()
+> 7
+> 5
+> ()
+> ()
+> (a (b c))
+> (a b)
+> ()
+> ()
+> ()
+> 2
+> 3
+> 7
+> fn:(λ ([Sym(l)]) (cond ((null? l) 0) (else (add1 (eternity (cdr l))))))
+> fn:(λ ([Sym(l)]) (cond ((null? l) 0) (else (add1 ((lambda (l) (cond ((null? l) 0) (else (add1 (eternity (cdr l)))))) (cdr l))))))
+> fn:(λ ([Sym(l)]) (cond ((null? l) 0) (else (add1 (length (cdr l))))))
+> fn:(λ ([Sym(l)]) (cond ((null? l) 0) (else (add1 (f (cdr l))))))
+> fn:(λ ([Sym(mk-length)]) (mk-length eternity))
+> fn:(λ ([Sym(l)]) (cond ((null? l) 0) (else (add1 ((mk-length eternity) (cdr l))))))
+> 5
+> fn:(λ ([Sym(l)]) (cond ((null? l) 0) (else (add1 (length (cdr l))))))
+> fn:(λ ([Sym(l)]) (cond ((null? l) 0) (else (add1 (length (cdr l))))))
+> fn:(λ ([Sym(le)]) ((lambda (mk-length) (mk-length mk-length)) (lambda (mk-length) (le (lambda (x) ((mk-length mk-length) x))))))
+> ()
+> ()
+> 5
+> ()
+> (b c d)
+> (a c d)
+> (a b d)
+> (a b c)
+> 
