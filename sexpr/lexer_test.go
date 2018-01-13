@@ -53,6 +53,13 @@ func TestSimpleLexer(t *testing.T) {
 				{ itemEOF, ""},
 			},
 		},
+		{
+			"1st",
+			[]item {
+				{ itemSymbol, "1st" },
+				{ itemEOF, ""},
+			},
+		},
 	}
 	for _, test := range tests {
 		_, ch := lex("test", mkRuneChannel(test.input))
