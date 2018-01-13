@@ -53,6 +53,38 @@ func TestSimpleLexer(t *testing.T) {
 				{ itemEOF, ""},
 			},
 		},
+		{
+			"1st",
+			[]item {
+				{ itemSymbol, "1st" },
+				{ itemEOF, ""},
+			},
+		},
+		{
+			"lambda(x)",
+			[]item {
+				{ itemSymbol, "lambda" },
+				{ itemLparen, "(" },
+				{ itemSymbol, "x" },
+				{ itemRparen, ")" },
+				{ itemEOF, "" },
+			},
+		},
+		{
+			"([cond (null? x)])",
+			[]item {
+				{ itemLparen, "(" },
+				{ itemLparen, "[" },
+				{ itemSymbol, "cond" },
+				{ itemLparen, "(" },
+				{ itemSymbol, "null?" },
+				{ itemSymbol, "x" },
+				{ itemRparen, ")" },
+				{ itemRparen, "]" },
+				{ itemRparen, ")" },
+				{ itemEOF, "" },
+			},
+		},
 	}
 	for _, test := range tests {
 		_, ch := lex("test", mkRuneChannel(test.input))
@@ -142,7 +174,7 @@ func ExampleBadLexing () {
 	// EOF
 }
 
-func ExampleBadLexing2 () {
+func ExampleSymbolLexing () {
 	sexpr := "(0add 0 1)"
 		_, ch := lex("test", mkRuneChannel(sexpr))
 	for tok := range ch {
@@ -150,5 +182,9 @@ func ExampleBadLexing2 () {
 	}
 	// Output:
 	// LPAREN
-	// ERROR(bad number syntax: "0a")
+	// SYMBOL(0add)
+	// NUMBER(0)
+	// NUMBER(1)
+	// RPAREN
+	// EOF
 }

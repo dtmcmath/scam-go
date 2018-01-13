@@ -1,56 +1,22 @@
-$ go run scam.go
 SCAM Version 0.1
 Please be gentle
 
-> (define atom?                                                                ;
- (lambda (x)                                                                 ;
-    (and (not (pair? x)) (not (null? x)))))                                  ;
-
-()
-> (define lat?
-  (lambda (l)
-    (cond
-      ((null? l) #t)
-      ((atom? (car l)) (lat? (cdr l)))
-      (else #f))))
-
-()
-> (lat? '(Jack Sprat could eat no chicken fat))
-#t
-> (lat? '())
-#t
-> (lat? '(bacon and eggs))
-#t
-> (lat? '((Jack) Sprat could eat no chicken fat)) ; not-lat because (car l) is a list
-#f
-> (lat? '(Jack (Sprat could) eat no chicken fat)) ; not-lat because l contains a list
-#f
-> (lat? '(bacon (and eggs)))                      ; not-lat because '(and eggs) is a list
-#f
-> (or (null? '()) (atom? '(d e f g)))             ; true
-#t
-> (or (null? '(a b c)) (null? '()))               ; true
-#t
-> (or (null? '(a b c)) (null? '(atom)))           ; false
-#f
-> (define member?
-  (lambda (a lat)
-    (cond
-      ((null? lat) #f)
-      (else (or (eq? (car lat) a)
-                (member? a (cdr lat)))))))
-
-()
-> (member? 'meat '(mashed potatoes and meat gravy))
-#t
-> (member? 'meat '(potatoes and meat gravy))
-#t
-> (member? 'meat '(and meat gravy))
-#t
-> (member? 'meat '(meat gravy))
-#t
-> (member? 'liver '(bagels and lox))
-#f
-> (member? 'liver '())
-#f
+> ()
+> ()
+> #t
+> #t
+> #t
+> #f
+> #f
+> #f
+> #t
+> #t
+> #f
+> ()
+> #t
+> #t
+> #t
+> #t
+> #f
+> #f
 > 

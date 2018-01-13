@@ -28,6 +28,12 @@ func TestEvaluateArithmetic(t *testing.T) {
 		{ "(= 1 2)", []Sexpr{ False } },
 		{ "(= 2 2)", []Sexpr{ True } },
 		{ "(= (+ 1 2) 3)", []Sexpr{ True } },
+		{ "(expt 2 3)", []Sexpr{ mkAtomNumber("8") } },
+		{ "(= (expt 2 3) 8)", []Sexpr{ True } },
+		{ "(expt 4 0.5)", []Sexpr{ mkAtomNumber("2.000000") } },
+		{ "(= (expt 4 0.5) 2.000000)", []Sexpr{ True } },
+		{ "(* 4 3) (* 2.718281 3.141593)", []Sexpr{ mkAtomNumber("12"), mkAtomNumber("8.539733") } },
+		{ "(/ 4 3) (/ (* 40 37) 40)", []Sexpr{ mkAtomNumber("1.333333"), mkAtomNumber("37") } },
 	}
 
 	for _, test := range tests {
@@ -315,6 +321,19 @@ func TestEvaluatorLambda(t *testing.T) {
 (nonpair? '(a b))
 `,
 			[]Sexpr{ Nil, True, True, False },
+		},
+		{ // Chapter 10
+			`
+((lambda (nothing)
+   (cons nothing (quote ())))
+ (quote (from nothing comes something)))
+`,
+			[]Sexpr{
+				mkCons(
+					consify([]Sexpr{mkAtomSymbol("from"), mkAtomSymbol("nothing"), mkAtomSymbol("comes"), mkAtomSymbol("something")}),
+					Nil,
+				),
+			},
 		},
 	}
 

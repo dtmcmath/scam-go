@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"fmt"
 	"errors"
+	"math"
 )
 
 // Functions are first class objects.  The file defines operations
@@ -67,8 +68,11 @@ func mkTodoApplicator(s string) applicator {
 }
 
 var primitiveFunctions = map[string]applicator {
-	"-":      mkNaryFn("-", 2, fnMinus),
 	"+":      mkArithmeticReduce("+", zeroIntOrFloat, reducePlus),
+	"*":      mkArithmeticReduce("*", oneIntOrFloat, reduceTimes),
+	"expt":   mkNaryFn("expt", 2, fnExponent),
+	"-":      mkNaryFn("-", 2, fnMinus),
+	"/":      mkNaryFn("/", 2, fnDivide),
 	"cons":   mkNaryFn("cons", 2, func(args []Sexpr) (Sexpr, sexpr_error) {
 		return mkCons(args[0], args[1]), nil
 	}),
@@ -186,7 +190,10 @@ type intOrFloat struct{
 	isInt   bool
 }
 
-var zeroIntOrFloat = intOrFloat{0, 0.0, true}
+var (
+	zeroIntOrFloat = intOrFloat{0, 0.0, true}
+	oneIntOrFloat  = intOrFloat{1, 1.0, true}
+)
 
 func parseIntOrFloat(s Sexpr) (*intOrFloat, error) {
 	var numberString string
@@ -237,12 +244,64 @@ func (n *intOrFloat) increaseBy(m intOrFloat) {
 		n.isInt = m.isInt
 	}
 }
+// multiply m to n, destructively modifying n.  Like *=
+func (n *intOrFloat) multiplyBy(m intOrFloat) {
+	n.asint   *= m.asint
+	n.asfloat *= m.asfloat
+	if n.isInt {
+		n.isInt = m.isInt
+	}
+}
 // subtract m from n, destructively modifying n.  Like -=
 func (n *intOrFloat) decreaseBy(m intOrFloat) {
 	n.asint   -= m.asint
 	n.asfloat -= m.asfloat
 	if n.isInt {
 		n.isInt = m.isInt
+	}
+}
+// divide m into n, destructively modifying n.  Like /=
+func (n *intOrFloat) divideBy(m intOrFloat) error {
+	if (m.isInt && m.asint == 0) || m.asfloat == 0 {
+		return errors.New("Divide by zero")
+	}
+	if n.isInt && m.isInt && n.asint % m.asint == 0 {
+		// Integer division is still possible
+		n.asint /= m.asint
+	} else {
+		n.isInt = false
+		n.asfloat /= m.asfloat
+	}
+	return nil
+}
+
+// raise n to the power m, desructively modifying n
+func (n *intOrFloat) toPower(m intOrFloat) {
+	if m.isInt {
+		intOrig := n.asint
+		if m.asint == 0 {
+			// TODO:  Assert n != 0
+			n.asint = 1
+			n.asfloat = 1
+			n.isInt = true
+			return
+		} else if m.asint > 0 {
+			for i := int64(1) ; i < m.asint ; i++ {
+				n.asint *= intOrig
+			}
+		} else {
+			// Fraction...
+			// TODO:  Assert n != 0
+			n.asfloat = 1/n.asfloat
+			for i := int64(1) ; i < -m.asint ; i++ {
+				n.asfloat /= float64(intOrig)
+			}
+			n.isInt = false
+		}
+	}
+	n.asfloat = math.Pow(n.asfloat, m.asfloat)
+	if n.isInt {
+		n.isInt = m.isInt // Bleh... m is 1/2??
 	}
 }
 
@@ -270,6 +329,9 @@ func mkArithmeticReduce(
 func reducePlus(acc *intOrFloat, addend intOrFloat) {
 	acc.increaseBy(addend)
 }
+func reduceTimes(acc *intOrFloat, multiplicand intOrFloat) {
+	acc.multiplyBy(multiplicand)
+}
 
 func fnMinus(args []Sexpr) (Sexpr, sexpr_error) {
 	minuend, err := parseIntOrFloat(args[0])
@@ -283,6 +345,36 @@ func fnMinus(args []Sexpr) (Sexpr, sexpr_error) {
 	// else
 	minuend.decreaseBy(*subtrahend)
 	return minuend.Sexprize(), nil
+}
+func fnDivide(args []Sexpr) (Sexpr, sexpr_error) {
+	divisor, err := parseIntOrFloat(args[0])
+	if err != nil {
+		return nil, evaluationError{"/", err.Error()}
+	}
+	dividend, err := parseIntOrFloat(args[1])
+	if err != nil {
+		return nil, evaluationError{"/", err.Error()}
+	}
+	// else
+	err = divisor.divideBy(*dividend)
+	if err != nil {
+		// Divide by zero
+		return nil, evaluationError{"/", err.Error()}
+	}
+	return divisor.Sexprize(), nil
+}
+func fnExponent(args []Sexpr) (Sexpr, sexpr_error) {
+	base, err := parseIntOrFloat(args[0])
+	if err != nil {
+		return nil, evaluationError{"-", err.Error()}
+	}
+	exponent, err := parseIntOrFloat(args[1])
+	if err != nil {
+		return nil, evaluationError{"-", err.Error()}
+	}
+	// else
+	base.toPower(*exponent)
+	return base.Sexprize(), nil
 }
 
 func mkEqualAtomChecker(typ atomType) applicator {

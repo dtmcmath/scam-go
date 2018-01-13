@@ -1,0 +1,81 @@
+SCAM Version 0.1
+Please be gentle
+
+> ()
+> ()
+> ()
+> ()
+> ()
+> (apples peaches pears plums)
+> (apple peaches apple plum)
+> ()
+> #t
+> #f
+> #f
+> ()
+> (pear plum apple lemon peach)
+> ()
+> ()
+> (apple peach pear plum lemon)
+> (apple 3 pear 4 9)
+> ()
+> #t
+> #f
+> ()
+> #t
+> #f
+> ()
+> #t
+> #t
+> #f
+> ()
+> #t
+> #f
+> ()
+> #t
+> #f
+> ()
+> (and macaroni)
+> ()
+> (stewed tomatoes casserole macaroni and cheese)
+> ()
+> (c)
+> ()
+> (a)
+> (6 and)
+> ()
+> #t
+> #t
+> #t
+> #t
+> #f
+> #f
+> ()
+> ()
+> ()
+> ()
+> (apples peaches pumpkins pie)
+> ((apples peaches) (pumpkin pie) (apples peaches))
+> ((apples peaches) (pumpkin pie))
+> ((4 3) (4 2) (7 6) (6 2) (3 4))
+> ()
+> ()
+> #f
+> #t
+> #f
+> ()
+> ((a 8) (pie pumpkin) (sick got))
+> ()
+> ()
+> ((a 8) (pie pumpkin) (sick got))
+> ()
+> ()
+> #f
+> #t
+> #f
+> ()
+> #f
+> #t
+> #f
+> #t
+> 
