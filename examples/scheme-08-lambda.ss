@@ -25,6 +25,34 @@
  (lambda (x)
     (and (not (pair? x)) (not (null? x)))))
 
+; eqan? function from Chapter 4 ()
+(define eqan?
+  (lambda (a1 a2)
+    (cond
+     ((and (number? a1) (number? a2))
+      (= a1 a2))
+     ((or (number? a1) (number? a2))
+      #f)
+     (else (eq? a1 a2)))))
+
+; eqlist?, and equal?? functions from Chapter 5 ()
+(define eqlist?
+  (lambda (l1 l2)
+    (cond
+      ((and (null? l1) (null? l2)) #t)
+      ((or (null? l1) (null? l2)) #f)
+      (else
+       (and (equal?? (car l1) (car l2))
+            (eqlist? (cdr l1) (cdr l2)))))))
+(define equal??
+  (lambda (s1 s2)
+    (cond
+     ((and (atom? s1) (atom? s2))
+      (eqan? s1 s2))
+     ((or (atom? s1) (atom? s2))
+      #f)
+     (else (eqlist? s1 s2)))))
+
 ; The rember-f function takes the test function, element, and a list
 ; and removes the element that test true
 ;
@@ -38,8 +66,14 @@
 
 ; Examples of rember-f
 ;
-(rember-f eq? 2 '(1 2 3 4 5))
+(rember-f = 5 '(6 2 5 3))
+; ==> '(6 2 3)
+(rember-f = 2 '(1 2 3 4 5))
 ; ==> '(1 3 4 5)
+(rember-f eq? 'jelly '(jelly beans are good))
+; ==> '(beans are good)
+(rember-f equal?? '(pop corn) '(lemonade (pop corn) and (cake)))
+; ==> '(lemonade and (cake))
 
 ; The eq?-c function takes an atom and returns a function that
 ; takes an atom and tests if they are the same
@@ -76,8 +110,14 @@
 
 ; Test of rember-f
 ;
-((rember-f eq?) 2 '(1 2 3 4 5))
+((rember-f =) 5 '(6 2 5 3))
+; ==> '(6 2 3)
+((rember-f =) 2 '(1 2 3 4 5))
 ; ==> '(1 3 4 5)
+((rember-f eq?) 'jelly '(jelly beans are good))
+; ==> '(beans are good)
+((rember-f equal??) '(pop corn) '(lemonade (pop corn) and (cake)))
+; ==> '(lemonade and (cake))
 
 ; Curry (rember-f eq?)
 ;
@@ -85,8 +125,6 @@
 
 ; Test curried function
 ;
-(rember-eq? 2 '(1 2 3 4 5))
-; ==> '(1 3 4 5)
 (rember-eq? 'tuna '(tuna salad is good))
 ; ==> '(salad is good)
 (rember-eq? 'tuna '(shrimp salad and tuna salad))
