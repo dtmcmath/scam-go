@@ -75,6 +75,8 @@ func TestEvaluateEqQ(t *testing.T) {
 			[]Sexpr{ Nil, Nil, mkCons(atomone, atomtwo) },
 		},
 		{ "(eq? '() '())", []Sexpr{ True } },
+		{ "(length '(a b c d e))", []Sexpr{ mkAtomNumber("5") } },
+		{ "(= (length '(a b c d e)) 5)", []Sexpr{ True } },
 	}
 
 	for _, test := range tests {

@@ -93,6 +93,13 @@ var primitiveFunctions = map[string]applicator {
 		// else
 		return False, nil
 	}),
+	"length": mkNaryFn("length", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
+		lst, err := unconsify(args[0])
+		if err != nil {
+			return nil, evaluationError{"length", err.Error()}
+		}
+		return mkAtomNumber( fmt.Sprintf("%d", len(lst) ) ), nil
+	}),
 	"not":    mkNaryFn("not", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
 		if args[0] == True {
 			return False, nil
