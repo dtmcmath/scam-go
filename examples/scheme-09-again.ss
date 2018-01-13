@@ -123,7 +123,7 @@
 ; Example of weight*
 ;
 (weight* '((a b) c))                          ; 7
-(weight* '(a (b c))                           ; 5
+(weight* '(a (b c)))                          ; 5
 
 ; Let's simplify revrel by using inventing revpair that reverses a pair
 ;
