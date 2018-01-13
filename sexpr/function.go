@@ -68,10 +68,11 @@ func mkTodoApplicator(s string) applicator {
 }
 
 var primitiveFunctions = map[string]applicator {
-	"-":      mkNaryFn("-", 2, fnMinus),
 	"+":      mkArithmeticReduce("+", zeroIntOrFloat, reducePlus),
 	"*":      mkArithmeticReduce("*", oneIntOrFloat, reduceTimes),
 	"expt":   mkNaryFn("expt", 2, fnExponent),
+	"-":      mkNaryFn("-", 2, fnMinus),
+	"/":      mkNaryFn("/", 2, fnDivide),
 	"cons":   mkNaryFn("cons", 2, func(args []Sexpr) (Sexpr, sexpr_error) {
 		return mkCons(args[0], args[1]), nil
 	}),
@@ -259,6 +260,21 @@ func (n *intOrFloat) decreaseBy(m intOrFloat) {
 		n.isInt = m.isInt
 	}
 }
+// divide m into n, destructively modifying n.  Like /=
+func (n *intOrFloat) divideBy(m intOrFloat) error {
+	if (m.isInt && m.asint == 0) || m.asfloat == 0 {
+		return errors.New("Divide by zero")
+	}
+	if n.isInt && m.isInt && n.asint % m.asint == 0 {
+		// Integer division is still possible
+		n.asint /= m.asint
+	} else {
+		n.isInt = false
+		n.asfloat /= m.asfloat
+	}
+	return nil
+}
+
 // raise n to the power m, desructively modifying n
 func (n *intOrFloat) toPower(m intOrFloat) {
 	if m.isInt {
@@ -329,6 +345,23 @@ func fnMinus(args []Sexpr) (Sexpr, sexpr_error) {
 	// else
 	minuend.decreaseBy(*subtrahend)
 	return minuend.Sexprize(), nil
+}
+func fnDivide(args []Sexpr) (Sexpr, sexpr_error) {
+	divisor, err := parseIntOrFloat(args[0])
+	if err != nil {
+		return nil, evaluationError{"/", err.Error()}
+	}
+	dividend, err := parseIntOrFloat(args[1])
+	if err != nil {
+		return nil, evaluationError{"/", err.Error()}
+	}
+	// else
+	err = divisor.divideBy(*dividend)
+	if err != nil {
+		// Divide by zero
+		return nil, evaluationError{"/", err.Error()}
+	}
+	return divisor.Sexprize(), nil
 }
 func fnExponent(args []Sexpr) (Sexpr, sexpr_error) {
 	base, err := parseIntOrFloat(args[0])
