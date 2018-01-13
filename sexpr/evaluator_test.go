@@ -3,6 +3,7 @@ package sexpr
 import (
 	"fmt"
 	"testing"
+	"regexp"
 )
 
 // atomone, atomtwo, etc are defined in sexpr_test.go
@@ -382,6 +383,22 @@ func ExampleEvaluator() {
 	// gave #t
 }
 
+func TestLambdaError(t *testing.T) {
+	s := "((lambda (x y) x) 'a)"
+	_, ch := Parse("repl", mkRuneChannel(s))
+	for sx := range ch {
+		val := Evaluate(sx)
+		switch val := val.(type) {
+		case evaluationError:
+			good, _ := regexp.MatchString("Exception.*1 arguments.*expected 2", val.Error())
+			if !good {
+				t.Errorf("Evaluating %q expected error, got %q", s, val.Error())
+			}
+		default:
+			t.Errorf("Evaluating %q expected error, got %T", val)
+		}
+	}
+}	
 /////
 // Helpers
 /////
