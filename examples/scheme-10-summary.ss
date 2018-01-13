@@ -35,9 +35,9 @@
 
 ; Test it out and build the example entries above
 ;
-(build '(appetizer entree bevarage)
+(build '(appetizer entrée bevarage)
        '(pate boeuf vin))
-(build '(appetizer entree bevarage)
+(build '(appetizer entrée bevarage)
        '(beer beer beer))
 (build '(bevarage dessert)
        '((food is) (number one with us)))
@@ -85,14 +85,20 @@
 ; Let's try out lookup-in-entry
 ;
 (lookup-in-entry
-  'entree
-  '((appetizer entree bevarage) (pate boeuf vin))
+  'entrée
+  '((appetizer entrée bevarage) (pate boeuf vin))
   (lambda (n) '()))
 ; ==> 'boeuf
 
 (lookup-in-entry
+  'entrée
+  '((appetizer entrée bevarage) (food tastes good))
+  (lambda (n) '()))
+; ==> 'tastes
+
+(lookup-in-entry
   'no-such-item
-  '((appetizer entree bevarage) (pate boeuf vin))
+  '((appetizer entrée bevarage) (pate boeuf vin))
   (lambda (n) '()))
 ; ==> '()
 
@@ -100,7 +106,7 @@
 ; examples.
 ;
 '()
-'(((appetizer entree beverage) (pate boeuf vin))
+'(((appetizer entrée beverage) (pate boeuf vin))
   ((beverage dessert) ((food is) (number one with us))))
 
 ; The extend-table function takes an entry and a table and adds entry to the
@@ -127,9 +133,16 @@
 ; Let's try lookup-in-table
 ;
 (lookup-in-table
+  'entrée
+  '(((entrée dessert) (spaghetti spumoni))
+    ((appetizer entrée beverage) (food tastes good)))
+  (lambda (n) '()))
+; ==> 'spaghetti
+
+(lookup-in-table
   'beverage
-  '(((entree dessert) (spaghetti spumoni))
-    ((appetizer entree beverage) (food tastes good)))
+  '(((entrée dessert) (spaghetti spumoni))
+    ((appetizer entrée beverage) (food tastes good)))
   (lambda (n) '()))
 ; ==> 'good
 
@@ -264,6 +277,12 @@
 
 (define cond-lines-of cdr)
 
+; An example
+(*cond (quote (cond (coffee klatsch) (else party)))
+       (quote (((coffee) (#t))
+               ((klatsch party) (5 (6))))))
+; ==> 5
+
 ; evlis finds meaning of arguments
 ;
 (define evlis
@@ -373,7 +392,7 @@
         (x (quote true))
         (else
           (quote false))))
-    #t))                                    ; 'true
+    (quote #t)))                            ; 'true
 
 
 ;

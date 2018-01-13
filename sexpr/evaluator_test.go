@@ -322,6 +322,19 @@ func TestEvaluatorLambda(t *testing.T) {
 `,
 			[]Sexpr{ Nil, True, True, False },
 		},
+		{ // Chapter 10
+			`
+((lambda (nothing)
+   (cons nothing (quote ())))
+ (quote (from nothing comes something)))
+`,
+			[]Sexpr{
+				mkCons(
+					consify([]Sexpr{mkAtomSymbol("from"), mkAtomSymbol("nothing"), mkAtomSymbol("comes"), mkAtomSymbol("something")}),
+					Nil,
+				),
+			},
+		},
 	}
 
 	for _, test := range tests {
