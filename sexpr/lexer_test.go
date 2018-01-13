@@ -149,7 +149,7 @@ func ExampleBadLexing () {
 	// EOF
 }
 
-func ExampleBadLexing2 () {
+func ExampleSymbolLexing () {
 	sexpr := "(0add 0 1)"
 		_, ch := lex("test", mkRuneChannel(sexpr))
 	for tok := range ch {
@@ -157,5 +157,9 @@ func ExampleBadLexing2 () {
 	}
 	// Output:
 	// LPAREN
-	// ERROR(bad number syntax: "0a")
+	// SYMBOL(0add)
+	// NUMBER(0)
+	// NUMBER(1)
+	// RPAREN
+	// EOF
 }

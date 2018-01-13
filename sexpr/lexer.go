@@ -288,7 +288,7 @@ func init() {
 	}()
 	// looksLikeSymbolTerminator matches runes that would end a symbol-run
 	looksLikeSymbolTerminator = func() runeTester {
-		l := mkLookupFunc(");")
+		l := mkLookupFunc(")];")
 		return func (r rune) bool {
 			return r == eof || unicode.IsSpace(r) || l(r)
 		}
@@ -369,12 +369,13 @@ func lexNumber(l *lexer) stateFn {
         l.accept("+-")
         l.acceptRun("0123456789")
     }
-    // Next thing mustn't be alphanumeric.
-    if unicode.IsLetter(l.peek()) {
-        l.next()
-        return l.errorf("bad number syntax: %q",
-            l.input[l.start:l.pos])
-    }
+	// If the next thing is symbol-like, we've been looking for a
+	// symbol this whole time!!!
+	nxt := l.peek()
+	if !looksLikeSymbolTerminator(nxt) && isPartOfASymbol(nxt) {
+		return lexSymbol
+	}
+	// else, it's a number
     l.emit(itemNumber)
     return lexText
 }	
