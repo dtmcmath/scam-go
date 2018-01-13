@@ -32,6 +32,7 @@ func TestEvaluateArithmetic(t *testing.T) {
 		{ "(= (expt 2 3) 8)", []Sexpr{ True } },
 		{ "(expt 4 0.5)", []Sexpr{ mkAtomNumber("2.000000") } },
 		{ "(= (expt 4 0.5) 2.000000)", []Sexpr{ True } },
+		{ "(* 4 3) (* 2.718281 3.141593)", []Sexpr{ mkAtomNumber("12"), mkAtomNumber("8.539733") } },
 	}
 
 	for _, test := range tests {

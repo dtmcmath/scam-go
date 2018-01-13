@@ -70,6 +70,7 @@ func mkTodoApplicator(s string) applicator {
 var primitiveFunctions = map[string]applicator {
 	"-":      mkNaryFn("-", 2, fnMinus),
 	"+":      mkArithmeticReduce("+", zeroIntOrFloat, reducePlus),
+	"*":      mkArithmeticReduce("*", oneIntOrFloat, reduceTimes),
 	"expt":   mkNaryFn("expt", 2, fnExponent),
 	"cons":   mkNaryFn("cons", 2, func(args []Sexpr) (Sexpr, sexpr_error) {
 		return mkCons(args[0], args[1]), nil
@@ -188,7 +189,10 @@ type intOrFloat struct{
 	isInt   bool
 }
 
-var zeroIntOrFloat = intOrFloat{0, 0.0, true}
+var (
+	zeroIntOrFloat = intOrFloat{0, 0.0, true}
+	oneIntOrFloat  = intOrFloat{1, 1.0, true}
+)
 
 func parseIntOrFloat(s Sexpr) (*intOrFloat, error) {
 	var numberString string
@@ -235,6 +239,14 @@ func (i intOrFloat) Sexprize() Sexpr {
 func (n *intOrFloat) increaseBy(m intOrFloat) {
 	n.asint   += m.asint
 	n.asfloat += m.asfloat
+	if n.isInt {
+		n.isInt = m.isInt
+	}
+}
+// multiply m to n, destructively modifying n.  Like *=
+func (n *intOrFloat) multiplyBy(m intOrFloat) {
+	n.asint   *= m.asint
+	n.asfloat *= m.asfloat
 	if n.isInt {
 		n.isInt = m.isInt
 	}
@@ -300,6 +312,9 @@ func mkArithmeticReduce(
 
 func reducePlus(acc *intOrFloat, addend intOrFloat) {
 	acc.increaseBy(addend)
+}
+func reduceTimes(acc *intOrFloat, multiplicand intOrFloat) {
+	acc.multiplyBy(multiplicand)
 }
 
 func fnMinus(args []Sexpr) (Sexpr, sexpr_error) {
