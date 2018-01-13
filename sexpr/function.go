@@ -488,6 +488,12 @@ func evalLambda(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 	body := args[1]
 	definition := fmt.Sprintf("(λ (%s) %s)", bound, args[1].Sprint())
 	apply := func(args []Sexpr) (Sexpr, sexpr_error) {
+		if len(bound) != len(args) {
+			return nil, evaluationError{
+				fmt.Sprintf("%s", definition),
+				fmt.Sprintf("Evaluation with %d arguments, expected %d", len(args), len(bound)),
+			}
+		}
 		newCtx := &evaluationContext{make(symbolTable), ctx}
 		for idx, sym := range bound {
 			if err := newCtx.bind(sym, args[idx]) ; err != nil {
