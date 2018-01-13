@@ -60,6 +60,31 @@ func TestSimpleLexer(t *testing.T) {
 				{ itemEOF, ""},
 			},
 		},
+		{
+			"lambda(x)",
+			[]item {
+				{ itemSymbol, "lambda" },
+				{ itemLparen, "(" },
+				{ itemSymbol, "x" },
+				{ itemRparen, ")" },
+				{ itemEOF, "" },
+			},
+		},
+		{
+			"([cond (null? x)])",
+			[]item {
+				{ itemLparen, "(" },
+				{ itemLparen, "[" },
+				{ itemSymbol, "cond" },
+				{ itemLparen, "(" },
+				{ itemSymbol, "null?" },
+				{ itemSymbol, "x" },
+				{ itemRparen, ")" },
+				{ itemRparen, "]" },
+				{ itemRparen, ")" },
+				{ itemEOF, "" },
+			},
+		},
 	}
 	for _, test := range tests {
 		_, ch := lex("test", mkRuneChannel(test.input))
