@@ -288,7 +288,7 @@ func init() {
 	}()
 	// looksLikeSymbolTerminator matches runes that would end a symbol-run
 	looksLikeSymbolTerminator = func() runeTester {
-		l := mkLookupFunc(")];")
+		l := mkLookupFunc(")];([")
 		return func (r rune) bool {
 			return r == eof || unicode.IsSpace(r) || l(r)
 		}
