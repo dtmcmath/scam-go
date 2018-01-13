@@ -136,26 +136,26 @@
 
 ; The new value function that uses helper functions
 ;
-(define value-prefix-helper
+(define value-helper
   (lambda (nexp)
     (cond
       ((atom? nexp) nexp)
       ((eq? (operator nexp) 'o+)
-       (+ (value-prefix (1st-sub-exp nexp))
-          (value-prefix (2nd-sub-exp nexp))))
-      ((eq? (car nexp) 'o*)
-       (* (value-prefix (1st-sub-exp nexp))
-          (value-prefix (2nd-sub-exp nexp))))
-      ((eq? (car nexp) 'o^)
-       (expt (value-prefix (1st-sub-exp nexp))
-             (value-prefix (2nd-sub-exp nexp))))
+       (+ (value-helper (1st-sub-exp nexp))
+          (value-helper (2nd-sub-exp nexp))))
+      ((eq? (operator nexp) 'o*)
+       (* (value-helper (1st-sub-exp nexp))
+          (value-helper (2nd-sub-exp nexp))))
+      ((eq? (operator nexp) 'o^)
+       (expt (value-helper (1st-sub-exp nexp))
+             (value-helper (2nd-sub-exp nexp))))
       (else #f))))
 
-; Examples of value-prefix-helper
+; Examples of value-helper
 ;
-(value-prefix-helper 13)                            ; 13
-(value-prefix-helper '(o+ 3 4))                     ; 7
-(value-prefix-helper '(o+ 1 (o^ 3 4)))              ; 82
+(value-helper 13)                            ; 13
+(value-helper '(o+ 3 4))                     ; 7
+(value-helper '(o+ 1 (o^ 3 4)))              ; 82
 
 ; Redefine helper functions for infix notation
 ;
@@ -171,11 +171,11 @@
   (lambda (aexp)
     (car (cdr aexp))))
 
-; Examples of value-prefix-helper of infix notation expressions
+; Examples of value-helper of infix notation expressions
 ;
-(value-prefix 13)                            ; 13
-(value-prefix '(o+ 3 4))                     ; 7
-(value-prefix '(o+ 1 (o^ 3 4)))              ; 82
+(value-helper 13)                            ; 13
+(value-helper '(3 o+ 4))                     ; 7
+(value-helper '(1 o+ (3 o^ 4)))              ; 82
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                                                                            ;
