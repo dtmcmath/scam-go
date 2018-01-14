@@ -12,25 +12,25 @@ func TestSimpleParse(t *testing.T) {
 	primcons := mkAtomSymbol("cons")
 	var tests = []struct {
 		input string
-		want []Sexpr
+		want []sexpr_general
 	}{
-		{ "()", []Sexpr{ atomConstantNil } },
-		{ "(1)", []Sexpr{ mkCons(atomone, atomConstantNil) } },
-		{ "1", []Sexpr{ atomone } },
+		{ "()", []sexpr_general{ atomConstantNil } },
+		{ "(1)", []sexpr_general{ mkCons(atomone, atomConstantNil) } },
+		{ "1", []sexpr_general{ atomone } },
 		{
 			" (1) 2 ",
-			[]Sexpr{
+			[]sexpr_general{
 				mkCons(atomone, atomConstantNil),
 				atomtwo,
 			},
 		},
 		{
 			"#t #f",
-			[]Sexpr{atomConstantTrue, atomConstantFalse},
+			[]sexpr_general{atomConstantTrue, atomConstantFalse},
 		},
 		{
 			"(cons 1 2)",
-			[]Sexpr{
+			[]sexpr_general{
 				mkCons(
 					primcons,
 					mkCons(atomone,
@@ -41,32 +41,32 @@ func TestSimpleParse(t *testing.T) {
 		},
 		{
 			"'()",
-			[]Sexpr{
+			[]sexpr_general{
 				mkList(atomConstantQuote, atomConstantNil),
 			},
 		},
 		{
 			"'1",
-			[]Sexpr{ mkList(atomConstantQuote, atomone) },
+			[]sexpr_general{ mkList(atomConstantQuote, atomone) },
 		},
 		{
 			"(cons '1 ())",
-			[]Sexpr{
+			[]sexpr_general{
 				mkList(primcons, mkList(atomConstantQuote, atomone), atomConstantNil),
 			},
 		},
 		{
 			"'(#t)",
-			[]Sexpr{mkList(atomConstantQuote, mkList(atomConstantTrue))},
+			[]sexpr_general{mkList(atomConstantQuote, mkList(atomConstantTrue))},
 		},
 		{
 			"o o+",
-			[]Sexpr{ mkAtomSymbol("o"), mkAtomSymbol("o+") },
+			[]sexpr_general{ mkAtomSymbol("o"), mkAtomSymbol("o+") },
 		},
 		// {
 		// 	"(eq? (car (cons 1 2)) 1)",
 		// 	// Bleh.  I've lost track!!!
-		// 	[]Sexpr{
+		// 	[]sexpr_general{
 		// 		mkCons(
 		// 			atomPrimitives[itemEqQ],
 		// 			mkCons(
@@ -85,7 +85,7 @@ func TestSimpleParse(t *testing.T) {
 
 	for _, test := range tests {
 		_, ch := Parse("test", mkRuneChannel(test.input))
-		var got []Sexpr
+		var got []sexpr_general
 		for sx := range ch {
 			got = append(got, sx)
 		}

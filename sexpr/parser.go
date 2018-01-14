@@ -24,7 +24,7 @@ var (
 )
 
 type stackOfSexprs struct {
-	val Sexpr
+	val sexpr_general
 	next *stackOfSexprs
 }
 
@@ -40,16 +40,16 @@ type parser struct {
 	name string
 	lex *lexer
 	items <-chan item
-	sexprs chan Sexpr
+	sexprs chan sexpr_general
 	// State-type things
 	stack *stackOfSexprs
 }
 
 // stack managment tools
-func (p *parser) pushStack(l Sexpr) {
+func (p *parser) pushStack(l sexpr_general) {
 	p.stack = &stackOfSexprs{l, p.stack}
 }
-func (p *parser) popStack() (Sexpr, error) {
+func (p *parser) popStack() (sexpr_general, error) {
 	if p.stack == nil {
 		return nil, emptyStackError
 	}
@@ -58,7 +58,7 @@ func (p *parser) popStack() (Sexpr, error) {
 	p.stack = p.stack.next
 	return top.val, nil
 }
-func (p *parser) mustPopStack() Sexpr {
+func (p *parser) mustPopStack() sexpr_general {
 	ans, err := p.popStack()
 	if err != nil { panic(err) }
 	return ans
@@ -66,7 +66,7 @@ func (p *parser) mustPopStack() Sexpr {
 // peek looks at the top Sexpr.  If the stack is empty, just return
 // nil (instead of throwing an error), which is different than Nil, so
 // that's not ambigious
-func (p *parser) peekStack() Sexpr {
+func (p *parser) peekStack() sexpr_general {
 	if p.stack == nil {
 		return nil
 	}
@@ -88,8 +88,8 @@ func (p *parser) peekStack() Sexpr {
 //   {z, y, x}
 //
 // If no marker is found, an error is returned.
-func (p *parser) popStackUntil(marker Sexpr) ([]Sexpr, error) {
-	var acc []Sexpr
+func (p *parser) popStackUntil(marker sexpr_general) ([]sexpr_general, error) {
+	var acc []sexpr_general
 	for {
 		head, err := p.popStack()
 		if err == emptyStackError {
@@ -99,12 +99,12 @@ func (p *parser) popStackUntil(marker Sexpr) ([]Sexpr, error) {
 		} else if head == marker {
 			return acc, nil
 		} else {
-			acc = append([]Sexpr{head}, acc...)
+			acc = append([]sexpr_general{head}, acc...)
 		}
 	}
 }
 
-func (p *parser) emit(s Sexpr) {
+func (p *parser) emit(s sexpr_general) {
 	top := p.peekStack()
 	if top == markerQUOTE {
 		p.mustPopStack()
@@ -133,10 +133,10 @@ func (p *parser) unsupportedf(format string, args ...interface{}) {
 	p.paniqf(format, args...)
 }
 
-func Parse(name string, input <-chan rune) (*parser, <-chan Sexpr) {
+func Parse(name string, input <-chan rune) (*parser, <-chan sexpr_general) {
 	p := &parser{
 		name: name,
-		sexprs: make(chan Sexpr),
+		sexprs: make(chan sexpr_general),
 		stack: nil,
 	}
 	p.lex, p.items = lex("lexer_"+name, input)

@@ -14,23 +14,23 @@ var (
 
 func TestConsify(t *testing.T) {
 	tests := []struct {
-		input []Sexpr
-		want Sexpr
+		input []sexpr_general
+		want sexpr_general
 	} {
 		{
-			[]Sexpr{},
+			[]sexpr_general{},
 			atomConstantNil,
 		},
 		{
-			[]Sexpr{atomConstantNil},
+			[]sexpr_general{atomConstantNil},
 			mkCons(atomConstantNil, atomConstantNil),
 		},
 		{
-			[]Sexpr{atomfoo},
+			[]sexpr_general{atomfoo},
 			mkCons(atomfoo, atomConstantNil),
 		},
 		{
-			[]Sexpr{atomfoo, atomone},
+			[]sexpr_general{atomfoo, atomone},
 			mkCons(atomfoo, mkCons(atomone, atomConstantNil)),
 		},
 	}
@@ -46,7 +46,7 @@ func TestConsify(t *testing.T) {
 
 func TestUnconsify(t *testing.T) {
 	input := "(1 2 3 2)"
-	want  := []Sexpr{
+	want  := []sexpr_general{
 		atomone,
 		atomtwo,
 		atomthree,

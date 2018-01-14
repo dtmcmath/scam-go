@@ -11,7 +11,7 @@ import (
 
 // consify takes a list of S-expressions and returns a single
 // S-expression that is the List (sexpr_cons's) represented by them.
-func consify(slist []Sexpr) Sexpr {
+func consify(slist []sexpr_general) sexpr_general {
 	if len(slist) == 0 {
 		return atomConstantNil
 	}
@@ -19,8 +19,8 @@ func consify(slist []Sexpr) Sexpr {
 	return mkCons(slist[0], consify(slist[1:]))
 }
 
-func unconsify(list Sexpr) ([]Sexpr, error) {
-	var ans []Sexpr
+func unconsify(list sexpr_general) ([]sexpr_general, error) {
+	var ans []sexpr_general
 	for idx, lst := 0, list ; lst != atomConstantNil ; idx++ {
 		switch l := lst.(type) {
 		case sexpr_atom:
@@ -40,7 +40,7 @@ func unconsify(list Sexpr) ([]Sexpr, error) {
 }
 // Like unconsify, but throws an error if the resulting list is not of
 // length n.
-func unconsifyN(list Sexpr, n int) ([]Sexpr, error) {
+func unconsifyN(list sexpr_general, n int) ([]sexpr_general, error) {
 	if ans, err := unconsify(list) ; err != nil {
 		return nil, err
 	} else if len(ans) != n {
@@ -60,7 +60,7 @@ func unconsifyN(list Sexpr, n int) ([]Sexpr, error) {
 // Test for equality (not eq?-ness) of expressions.  For everything
 // except Cons-es, it's just identity in the normal Go-sense.  For
 // Cons cells, we need car and cdr to be equal, but not serial number.
-func equalSexpr(a Sexpr, b Sexpr) bool {
+func equalSexpr(a sexpr_general, b sexpr_general) bool {
 	switch a := a.(type) {
 	case sexpr_cons:
 		switch b := b.(type) {
@@ -74,7 +74,7 @@ func equalSexpr(a Sexpr, b Sexpr) bool {
 	}
 }
 
-func deepEqualSexpr(a []Sexpr, b []Sexpr) bool {
+func deepEqualSexpr(a []sexpr_general, b []sexpr_general) bool {
 	for len(a) == len(b) {
 		if len(a) == 0 {
 			return true
@@ -106,4 +106,4 @@ func mkRuneChannel(in string) <-chan rune {
 }
 
 // isFalsey says whether "if" should skip it.  Only atomConstantFalse and atomConstantNil are falsey.
-func isFalsey(s Sexpr) bool { return s == atomConstantNil || s == atomConstantFalse }
+func isFalsey(s sexpr_general) bool { return s == atomConstantNil || s == atomConstantFalse }

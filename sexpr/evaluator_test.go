@@ -11,30 +11,30 @@ import (
 func TestEvaluateArithmetic(t *testing.T) {
 	var tests = []struct{
 		input string
-		want []Sexpr
+		want []sexpr_general
 	} {
-		{ "(+ 1 2)", []Sexpr{ atomthree } },
-		{ "(+ 1 (+ 1 1))", []Sexpr{ atomthree } },
+		{ "(+ 1 2)", []sexpr_general{ atomthree } },
+		{ "(+ 1 (+ 1 1))", []sexpr_general{ atomthree } },
 		// TODO:  Precision, on numbers
 		{
 			"(+ 1 3.141593)",
-			[]Sexpr{ mkAtomNumber("4.141593") },
+			[]sexpr_general{ mkAtomNumber("4.141593") },
 		},
 		{
 			"(+ 2.718281 3.141593)",
-			[]Sexpr{ mkAtomNumber("5.859874") },
+			[]sexpr_general{ mkAtomNumber("5.859874") },
 		},
-		{ "(+ 1 2 3 4 5)", []Sexpr{ mkAtomNumber("15") } },
-		{ "(- 5 2)", []Sexpr{ atomthree } },
-		{ "(= 1 2)", []Sexpr{ atomConstantFalse } },
-		{ "(= 2 2)", []Sexpr{ atomConstantTrue } },
-		{ "(= (+ 1 2) 3)", []Sexpr{ atomConstantTrue } },
-		{ "(expt 2 3)", []Sexpr{ mkAtomNumber("8") } },
-		{ "(= (expt 2 3) 8)", []Sexpr{ atomConstantTrue } },
-		{ "(expt 4 0.5)", []Sexpr{ mkAtomNumber("2.000000") } },
-		{ "(= (expt 4 0.5) 2.000000)", []Sexpr{ atomConstantTrue } },
-		{ "(* 4 3) (* 2.718281 3.141593)", []Sexpr{ mkAtomNumber("12"), mkAtomNumber("8.539733") } },
-		{ "(/ 4 3) (/ (* 40 37) 40)", []Sexpr{ mkAtomNumber("1.333333"), mkAtomNumber("37") } },
+		{ "(+ 1 2 3 4 5)", []sexpr_general{ mkAtomNumber("15") } },
+		{ "(- 5 2)", []sexpr_general{ atomthree } },
+		{ "(= 1 2)", []sexpr_general{ atomConstantFalse } },
+		{ "(= 2 2)", []sexpr_general{ atomConstantTrue } },
+		{ "(= (+ 1 2) 3)", []sexpr_general{ atomConstantTrue } },
+		{ "(expt 2 3)", []sexpr_general{ mkAtomNumber("8") } },
+		{ "(= (expt 2 3) 8)", []sexpr_general{ atomConstantTrue } },
+		{ "(expt 4 0.5)", []sexpr_general{ mkAtomNumber("2.000000") } },
+		{ "(= (expt 4 0.5) 2.000000)", []sexpr_general{ atomConstantTrue } },
+		{ "(* 4 3) (* 2.718281 3.141593)", []sexpr_general{ mkAtomNumber("12"), mkAtomNumber("8.539733") } },
+		{ "(/ 4 3) (/ (* 40 37) 40)", []sexpr_general{ mkAtomNumber("1.333333"), mkAtomNumber("37") } },
 	}
 
 	for _, test := range tests {
@@ -60,24 +60,24 @@ func ExampleArithmetic() {
 func TestEvaluateEqQ(t *testing.T) {
 	var tests = []struct{
 		input string
-		want []Sexpr
+		want []sexpr_general
 	} {
-		{ "(car (cons 1 2))", []Sexpr{ atomone } },
-		{ "(= (car (cons 1 2)) 1)", []Sexpr{ atomConstantTrue } },
-		{ "(eq? (cons 1 2) (cons 1 2))", []Sexpr{ atomConstantFalse } },
-		{ "'()", []Sexpr{ atomConstantNil } },
-		{ "()", []Sexpr{ atomConstantNil } },
-		{ "'1", []Sexpr{ atomone } },
-		{ "(cons '1 ())", []Sexpr{ mkList(atomone) } },
+		{ "(car (cons 1 2))", []sexpr_general{ atomone } },
+		{ "(= (car (cons 1 2)) 1)", []sexpr_general{ atomConstantTrue } },
+		{ "(eq? (cons 1 2) (cons 1 2))", []sexpr_general{ atomConstantFalse } },
+		{ "'()", []sexpr_general{ atomConstantNil } },
+		{ "()", []sexpr_general{ atomConstantNil } },
+		{ "'1", []sexpr_general{ atomone } },
+		{ "(cons '1 ())", []sexpr_general{ mkList(atomone) } },
 		{
 			"(define a 2)(= 2 a)",
-			[]Sexpr{ atomConstantNil, atomConstantTrue },
+			[]sexpr_general{ atomConstantNil, atomConstantTrue },
 		},
 		{
 			"(define a 1)(define b 2)(cons a b)",
-			[]Sexpr{ atomConstantNil, atomConstantNil, mkCons(atomone, atomtwo) },
+			[]sexpr_general{ atomConstantNil, atomConstantNil, mkCons(atomone, atomtwo) },
 		},
-		{ "(eq? '() '())", []Sexpr{ atomConstantTrue } },
+		{ "(eq? '() '())", []sexpr_general{ atomConstantTrue } },
 	}
 
 	for _, test := range tests {
@@ -89,23 +89,23 @@ func TestEvaluateEqQ(t *testing.T) {
 func TestEvaluateLogic(t *testing.T) {
 	var tests = []struct{
 		input string
-		want []Sexpr
+		want []sexpr_general
 	} {
-		{ "(and)", []Sexpr{ atomConstantTrue } },
-		{ "(and #t)", []Sexpr{ atomConstantTrue } },
-		{ "(and (eq? 'a 'a) #t)", []Sexpr{ atomConstantTrue } },
-		{ "(and (eq? 'a 'b) #t)", []Sexpr{ atomConstantFalse } },
-		{ "(and (eq? 'a 'b) unbound)", []Sexpr{ atomConstantFalse } },
-		{ "(not #t)", []Sexpr{ atomConstantFalse } },
-		{ "(not ())", []Sexpr{ atomConstantTrue } },
-		{ "(not #f)", []Sexpr{ atomConstantTrue } },
+		{ "(and)", []sexpr_general{ atomConstantTrue } },
+		{ "(and #t)", []sexpr_general{ atomConstantTrue } },
+		{ "(and (eq? 'a 'a) #t)", []sexpr_general{ atomConstantTrue } },
+		{ "(and (eq? 'a 'b) #t)", []sexpr_general{ atomConstantFalse } },
+		{ "(and (eq? 'a 'b) unbound)", []sexpr_general{ atomConstantFalse } },
+		{ "(not #t)", []sexpr_general{ atomConstantFalse } },
+		{ "(not ())", []sexpr_general{ atomConstantTrue } },
+		{ "(not #f)", []sexpr_general{ atomConstantTrue } },
 		{
 			`
 (cond
  (#t 1)
  (#f 2)
  (else 3))`,
-			[]Sexpr{ atomone },
+			[]sexpr_general{ atomone },
 		},
 		{
 			`
@@ -113,7 +113,7 @@ func TestEvaluateLogic(t *testing.T) {
  (#f 1)
  (#t 2)
  (else 3))`,
-			[]Sexpr{ atomtwo },
+			[]sexpr_general{ atomtwo },
 		},
 		{
 			`
@@ -121,7 +121,7 @@ func TestEvaluateLogic(t *testing.T) {
  (#f 1)
  (#f 2)
  (else 3))`,
-			[]Sexpr{ atomthree },
+			[]sexpr_general{ atomthree },
 		},
 		{
 			`
@@ -129,7 +129,7 @@ func TestEvaluateLogic(t *testing.T) {
  (#t 1)
  (#t 2)
  (else 3))`,
-			[]Sexpr{ atomone },
+			[]sexpr_general{ atomone },
 		},
 	}
 
@@ -145,19 +145,19 @@ func TestEvaluateQuote(t *testing.T) {
 
 	var tests = []struct{
 		input string
-		want []Sexpr
+		want []sexpr_general
 	} {
 		{
 			"(define a 2)'(a a)",
-			[]Sexpr{ atomConstantNil, mkList(atoma, atoma) },
+			[]sexpr_general{ atomConstantNil, mkList(atoma, atoma) },
 		},
 		{
 			"(define a 3)(define b 2)(cons 'a (cons 'b '()))",
-			[]Sexpr{ atomConstantNil, atomConstantNil, mkList(atoma, atomb) },
+			[]sexpr_general{ atomConstantNil, atomConstantNil, mkList(atoma, atomb) },
 		},
 		{
 			"(define a 1) 'a",
-			[]Sexpr{ atomConstantNil, atoma },
+			[]sexpr_general{ atomConstantNil, atoma },
 		},
 	}
 
@@ -170,7 +170,7 @@ func TestEvaluateQuote(t *testing.T) {
 func TestEvaluatorBinding(t *testing.T) {
 	var tests = []struct{
 		input string
-		want []Sexpr
+		want []sexpr_general
 	} {
 		{
 			`
@@ -178,7 +178,7 @@ func TestEvaluatorBinding(t *testing.T) {
 (define b 2)
 (let ([a 3] [b 4]) (= 7 (+ a b)))
 `,
-			[]Sexpr{ atomConstantNil, atomConstantNil, atomConstantTrue },
+			[]sexpr_general{ atomConstantNil, atomConstantNil, atomConstantTrue },
 		},
 		{ // Shadowing
 			`
@@ -186,11 +186,11 @@ func TestEvaluatorBinding(t *testing.T) {
 (define b 2)
 (let ([b 5]) (+ a b))
 `,
-			[]Sexpr{ atomConstantNil, atomConstantNil, mkAtomNumber("6") },
+			[]sexpr_general{ atomConstantNil, atomConstantNil, mkAtomNumber("6") },
 		},
 		{
 			"(let ([a 3] [b 4]) (= 7 (+ a b)))",
-			[]Sexpr{ atomConstantTrue },
+			[]sexpr_general{ atomConstantTrue },
 		},
 		{ // Shadowing, no leaking
 			`
@@ -199,7 +199,7 @@ func TestEvaluatorBinding(t *testing.T) {
 (let ([b 5]) (+ a b))
 (+ a b)
 `,
-			[]Sexpr{ atomConstantNil, atomConstantNil, mkAtomNumber("6"), atomthree },
+			[]sexpr_general{ atomConstantNil, atomConstantNil, mkAtomNumber("6"), atomthree },
 		},
 	}
 
@@ -287,21 +287,21 @@ func TestEvaluatorLambda(t *testing.T) {
 	resetEvaluationContext()
 	tests := []struct{
 		input string
-		want []Sexpr
+		want []sexpr_general
 	} {
 		{
 			`
 (define add1 (lambda (x) (+ x 1)))
 (= (add1 1) 2)
 `,
-			[]Sexpr{ atomConstantNil, atomConstantTrue },
+			[]sexpr_general{ atomConstantNil, atomConstantTrue },
 		},
 		{
 			`
 (define add1 (lambda (x) (+ x 1)))
 (add1 2)
 `,
-			[]Sexpr{ atomConstantNil, atomthree },
+			[]sexpr_general{ atomConstantNil, atomthree },
 		},
 		{
 			`
@@ -312,7 +312,7 @@ func TestEvaluatorLambda(t *testing.T) {
 (atom? '())
 (atom? '(a b))
 `,
-			[]Sexpr{ atomConstantNil, atomConstantTrue, atomConstantFalse, atomConstantFalse },
+			[]sexpr_general{ atomConstantNil, atomConstantTrue, atomConstantFalse, atomConstantFalse },
 		},
 		{
 			`
@@ -321,7 +321,7 @@ func TestEvaluatorLambda(t *testing.T) {
 (nonpair? '())
 (nonpair? '(a b))
 `,
-			[]Sexpr{ atomConstantNil, atomConstantTrue, atomConstantTrue, atomConstantFalse },
+			[]sexpr_general{ atomConstantNil, atomConstantTrue, atomConstantTrue, atomConstantFalse },
 		},
 		{ // Chapter 10
 			`
@@ -329,9 +329,9 @@ func TestEvaluatorLambda(t *testing.T) {
    (cons nothing (quote ())))
  (quote (from nothing comes something)))
 `,
-			[]Sexpr{
+			[]sexpr_general{
 				mkCons(
-					consify([]Sexpr{mkAtomSymbol("from"), mkAtomSymbol("nothing"), mkAtomSymbol("comes"), mkAtomSymbol("something")}),
+					consify([]sexpr_general{mkAtomSymbol("from"), mkAtomSymbol("nothing"), mkAtomSymbol("comes"), mkAtomSymbol("something")}),
 					atomConstantNil,
 				),
 			},
@@ -402,7 +402,7 @@ func TestLambdaError(t *testing.T) {
 /////
 // Helpers
 /////
-func helpConfirmEvaluation(input string, want []Sexpr, t *testing.T) {
+func helpConfirmEvaluation(input string, want []sexpr_general, t *testing.T) {
 		_, sexprs := Parse("test", mkRuneChannel(input))
 		idx := 0
 		for sx := range sexprs {

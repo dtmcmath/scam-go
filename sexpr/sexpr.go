@@ -73,7 +73,7 @@ func (a sexpr_atom) String() string {
 	}
 }
 
-func (a sexpr_atom) evaluate(ctx *evaluationContext) (Sexpr, sexpr_error) {
+func (a sexpr_atom) evaluate(ctx *evaluationContext) (sexpr_general, sexpr_error) {
 	switch a.typ {
 	case atomSymbol:
 		if val, ok := ctx.lookup(a) ; !ok {
@@ -122,12 +122,12 @@ var mkAtomNumber = atomFactory(atomNumber, atomNumberPool)
 
 var currentConsNumber int64
 type sexpr_cons struct {
-	car Sexpr
-	cdr Sexpr
+	car sexpr_general
+	cdr sexpr_general
 	serialNumber int64 // Keeps separate objects different
 }
 
-func mkCons(car Sexpr, cdr Sexpr) sexpr_cons {
+func mkCons(car sexpr_general, cdr sexpr_general) sexpr_cons {
 	defer func() {currentConsNumber += 1}()
 	return sexpr_cons{car, cdr, currentConsNumber}
 }
@@ -138,9 +138,9 @@ func mkCons(car Sexpr, cdr Sexpr) sexpr_cons {
 // with just
 //
 //   mkList(a, b, c)
-func mkList(s ...Sexpr) Sexpr { return consify(s) }
+func mkList(s ...sexpr_general) sexpr_general { return consify(s) }
 
-func getCar(s Sexpr) (Sexpr, error) {
+func getCar(s sexpr_general) (sexpr_general, error) {
 	switch s := s.(type) {
 	case sexpr_atom: return nil, errors.New("Cannot car an Atom")
 	case sexpr_cons: return s.car, nil
@@ -149,7 +149,7 @@ func getCar(s Sexpr) (Sexpr, error) {
 	}
 }
 
-func getCdr(s Sexpr) (Sexpr, error) {
+func getCdr(s sexpr_general) (sexpr_general, error) {
 	switch s := s.(type) {
 	case sexpr_atom: return nil, errors.New("Cannot cdr an Atom")
 	case sexpr_cons: return s.cdr, nil
@@ -158,14 +158,14 @@ func getCdr(s Sexpr) (Sexpr, error) {
 	}
 }
 
-func getCadr(s Sexpr) (Sexpr, error) {
+func getCadr(s sexpr_general) (sexpr_general, error) {
 	if cdr, err := getCdr(s) ; err != nil {
 		return nil, err
 	} else {
 		return getCar(cdr)
 	}
 }
-func getCddr(s Sexpr) (Sexpr, error) {
+func getCddr(s sexpr_general) (sexpr_general, error) {
 	if cdr, err := getCdr(s) ; err != nil {
 		return nil, err
 	} else {
@@ -203,22 +203,22 @@ func (c sexpr_cons) String() string {
 	return fmt.Sprintf("Cons(%s, %s)", c.car, c.cdr)
 }
 
-// A Sexpr includes sexpr_atom and sexpr_cons.  It's a discriminated union
-type Sexpr interface{
+// A sexpr_general includes sexpr_atom and sexpr_cons.  It's a discriminated union
+type sexpr_general interface{
 	Sprint() string
 }
 
-func Sprint(s Sexpr) string {
+func Sprint(s sexpr_general) string {
 	return s.Sprint()
 }
 
 // Fprint writes a pretty version of the S-expression to the named
 // writer.  It returns the number of bytes written and any write-error
 // encountered.
-func Fprint(out io.Writer, s Sexpr) (n int, err error) {
+func Fprint(out io.Writer, s sexpr_general) (n int, err error) {
 	return fmt.Fprint(out, Sprint(s))
 }
 
-func Print(s Sexpr) (n int, err error) {
+func Print(s sexpr_general) (n int, err error) {
 	return Fprint(os.Stdout, s)
 }

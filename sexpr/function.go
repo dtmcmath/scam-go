@@ -10,7 +10,7 @@ import (
 // Functions are first class objects.  The file defines operations
 // with functions and some with just macros.
 
-type applicator func([]Sexpr) (Sexpr, sexpr_error)
+type applicator func([]sexpr_general) (sexpr_general, sexpr_error)
 type func_expr struct{
 	definition string
 	// A function is handed its arguments pre-evaluated
@@ -33,7 +33,7 @@ func (m macro_expr) Sprint() string {
 // we define them here.
 
 func mkTodoEvaluator(s string) evaluator {
-	return func (ignore Sexpr, i2 *evaluationContext) (Sexpr, sexpr_error) {
+	return func (ignore sexpr_general, i2 *evaluationContext) (sexpr_general, sexpr_error) {
 		return nil, evaluationError{s, "is not yet implemented"}
 	}
 }
@@ -43,14 +43,14 @@ var primitiveMacros = map[string]evaluator {
 	"define": evalDefine,
 	"let":    evalLet,
 	"lambda": evalLambda,
-	"and":    mkLazyReduce("and", atomConstantTrue, func(acc Sexpr, val Sexpr) (Sexpr, bool) {
+	"and":    mkLazyReduce("and", atomConstantTrue, func(acc sexpr_general, val sexpr_general) (sexpr_general, bool) {
 		if isFalsey(val) {
 			return atomConstantFalse, true
 		} else {
 			return acc, false
 		}
 	}),
-	"or":     mkLazyReduce("or", atomConstantFalse, func(acc Sexpr, val Sexpr) (Sexpr, bool) {
+	"or":     mkLazyReduce("or", atomConstantFalse, func(acc sexpr_general, val sexpr_general) (sexpr_general, bool) {
 		if !isFalsey(val) {
 			return atomConstantTrue, true
 		} else {
@@ -62,7 +62,7 @@ var primitiveMacros = map[string]evaluator {
 }
 
 func mkTodoApplicator(s string) applicator {
-	return func(ignore []Sexpr) (Sexpr, sexpr_error) {
+	return func(ignore []sexpr_general) (sexpr_general, sexpr_error) {
 		return nil, evaluationError{s, "is not yet implemented"}
 	}
 }
@@ -73,21 +73,21 @@ var primitiveFunctions = map[string]applicator {
 	"expt":   mkNaryFn("expt", 2, fnExponent),
 	"-":      mkNaryFn("-", 2, fnMinus),
 	"/":      mkNaryFn("/", 2, fnDivide),
-	"cons":   mkNaryFn("cons", 2, func(args []Sexpr) (Sexpr, sexpr_error) {
+	"cons":   mkNaryFn("cons", 2, func(args []sexpr_general) (sexpr_general, sexpr_error) {
 		return mkCons(args[0], args[1]), nil
 	}),
-	"car":    mkConsSelector("car", func (c sexpr_cons) Sexpr { return c.car }),
-	"cdr":    mkConsSelector("cdr", func (c sexpr_cons) Sexpr { return c.cdr }),
+	"car":    mkConsSelector("car", func (c sexpr_cons) sexpr_general { return c.car }),
+	"cdr":    mkConsSelector("cdr", func (c sexpr_cons) sexpr_general { return c.cdr }),
 	"=":      mkNaryFn("=", 2, fnEqualNumber),
 	"eq?":    mkNaryFn("eq?", 2, fnEqualAtom),
-	"null?":  mkNaryFn("null?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
+	"null?":  mkNaryFn("null?", 1, func(args []sexpr_general) (sexpr_general, sexpr_error) {
 		if args[0] == atomConstantNil {
 			return atomConstantTrue, nil
 		} else {
 			return atomConstantFalse, nil
 		}
 	}),
-	"pair?":  mkNaryFn("pair?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
+	"pair?":  mkNaryFn("pair?", 1, func(args []sexpr_general) (sexpr_general, sexpr_error) {
 		switch args[0].(type) {
 		case sexpr_cons:
 			return atomConstantTrue, nil
@@ -95,21 +95,21 @@ var primitiveFunctions = map[string]applicator {
 		// else
 		return atomConstantFalse, nil
 	}),
-	"not":    mkNaryFn("not", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
+	"not":    mkNaryFn("not", 1, func(args []sexpr_general) (sexpr_general, sexpr_error) {
 		if args[0] == atomConstantTrue {
 			return atomConstantFalse, nil
 		} else {
 			return atomConstantTrue, nil
 		}
 	}),
-	"zero?":  mkNaryFn("pair?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
+	"zero?":  mkNaryFn("pair?", 1, func(args []sexpr_general) (sexpr_general, sexpr_error) {
 		if args[0] == atomConstantZero {
 			return atomConstantTrue, nil
 		} else {
 			return atomConstantFalse, nil
 		}
 	}),
-	"number?":  mkNaryFn("pair?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
+	"number?":  mkNaryFn("pair?", 1, func(args []sexpr_general) (sexpr_general, sexpr_error) {
 		switch a := args[0].(type) {
 		case sexpr_atom:
 			if a.typ == atomNumber {
@@ -126,8 +126,8 @@ var primitiveFunctions = map[string]applicator {
 
 // mkNaryFn makes an n-ary "normal" function, one that operates on
 // its arguments after they've been evaluated.
-func mkNaryFn(name string, n int, fn func([]Sexpr) (Sexpr, sexpr_error)) applicator {
-	return func(args []Sexpr) (Sexpr, sexpr_error) {
+func mkNaryFn(name string, n int, fn func([]sexpr_general) (sexpr_general, sexpr_error)) applicator {
+	return func(args []sexpr_general) (sexpr_general, sexpr_error) {
 		if len(args) != n {
 			msg := fmt.Sprintf("Expected %d arguments, got %d", n, len(args))
 			return nil, evaluationError{name, msg}
@@ -141,8 +141,8 @@ func mkNaryFn(name string, n int, fn func([]Sexpr) (Sexpr, sexpr_error)) applica
 	}
 }
 
-func mkConsSelector(name string, sel func(sexpr_cons) Sexpr) applicator {
-	return mkNaryFn(name, 1, func(args []Sexpr) (Sexpr, sexpr_error) {
+func mkConsSelector(name string, sel func(sexpr_cons) sexpr_general) applicator {
+	return mkNaryFn(name, 1, func(args []sexpr_general) (sexpr_general, sexpr_error) {
 		switch first := args[0].(type) {
 		case sexpr_cons: return sel(first), nil
 		default:
@@ -157,10 +157,10 @@ func mkConsSelector(name string, sel func(sexpr_cons) Sexpr) applicator {
 
 func mkLazyReduce(
 	name string,
-	acc Sexpr,
-	reducer func(acc Sexpr, val Sexpr) (Sexpr, bool),
+	acc sexpr_general,
+	reducer func(acc sexpr_general, val sexpr_general) (sexpr_general, bool),
 ) evaluator {
-	return func(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
+	return func(lst sexpr_general, ctx *evaluationContext) (sexpr_general, sexpr_error) {
 		args, err := unconsify(lst)
 		if err != nil {
 			return nil, evaluationError{name, err.Error()}
@@ -195,7 +195,7 @@ var (
 	oneIntOrFloat  = intOrFloat{1, 1.0, true}
 )
 
-func parseIntOrFloat(s Sexpr) (*intOrFloat, error) {
+func parseIntOrFloat(s sexpr_general) (*intOrFloat, error) {
 	var numberString string
 	switch s := s.(type) {
 	case sexpr_atom:
@@ -232,7 +232,7 @@ func (i intOrFloat) String() string {
 		return fmt.Sprintf("%f", i.asfloat)
 	}
 }
-func (i intOrFloat) Sexprize() Sexpr {
+func (i intOrFloat) sexprize() sexpr_general {
 	return mkAtomNumber(fmt.Sprintf("%s", i))
 }
 
@@ -312,7 +312,7 @@ func mkArithmeticReduce(
 	starter intOrFloat,
 	reducer arithmeticReducerFunction,
 ) applicator {
-	return func(args []Sexpr) (Sexpr, sexpr_error) {
+	return func(args []sexpr_general) (sexpr_general, sexpr_error) {
 		acc := starter // makes a copy!
 		for _, val := range args {
 			iorf, err := parseIntOrFloat(val)
@@ -322,7 +322,7 @@ func mkArithmeticReduce(
 			// else, destructively modify the accumulator
 			reducer(&acc, *iorf)
 		}
-		return acc.Sexprize(), nil
+		return acc.sexprize(), nil
 	}
 }
 
@@ -333,7 +333,7 @@ func reduceTimes(acc *intOrFloat, multiplicand intOrFloat) {
 	acc.multiplyBy(multiplicand)
 }
 
-func fnMinus(args []Sexpr) (Sexpr, sexpr_error) {
+func fnMinus(args []sexpr_general) (sexpr_general, sexpr_error) {
 	minuend, err := parseIntOrFloat(args[0])
 	if err != nil {
 		return nil, evaluationError{"-", err.Error()}
@@ -344,9 +344,9 @@ func fnMinus(args []Sexpr) (Sexpr, sexpr_error) {
 	}
 	// else
 	minuend.decreaseBy(*subtrahend)
-	return minuend.Sexprize(), nil
+	return minuend.sexprize(), nil
 }
-func fnDivide(args []Sexpr) (Sexpr, sexpr_error) {
+func fnDivide(args []sexpr_general) (sexpr_general, sexpr_error) {
 	divisor, err := parseIntOrFloat(args[0])
 	if err != nil {
 		return nil, evaluationError{"/", err.Error()}
@@ -361,9 +361,9 @@ func fnDivide(args []Sexpr) (Sexpr, sexpr_error) {
 		// Divide by zero
 		return nil, evaluationError{"/", err.Error()}
 	}
-	return divisor.Sexprize(), nil
+	return divisor.sexprize(), nil
 }
-func fnExponent(args []Sexpr) (Sexpr, sexpr_error) {
+func fnExponent(args []sexpr_general) (sexpr_general, sexpr_error) {
 	base, err := parseIntOrFloat(args[0])
 	if err != nil {
 		return nil, evaluationError{"-", err.Error()}
@@ -374,11 +374,11 @@ func fnExponent(args []Sexpr) (Sexpr, sexpr_error) {
 	}
 	// else
 	base.toPower(*exponent)
-	return base.Sexprize(), nil
+	return base.sexprize(), nil
 }
 
 func mkEqualAtomChecker(typ atomType) applicator {
-	return func(args []Sexpr) (Sexpr, sexpr_error) {
+	return func(args []sexpr_general) (sexpr_general, sexpr_error) {
 		var atoms []sexpr_atom
 		for _, arg := range args {
 			switch arg := arg.(type) {
@@ -404,7 +404,7 @@ func mkEqualAtomChecker(typ atomType) applicator {
 }
 var fnEqualNumber = mkEqualAtomChecker(atomNumber)
 var fnEqualSymbol = mkEqualAtomChecker(atomSymbol)
-func fnEqualAtom(args []Sexpr) (Sexpr, sexpr_error) {
+func fnEqualAtom(args []sexpr_general) (sexpr_general, sexpr_error) {
 	if args[0] == atomConstantNil {
 		for i := 1 ; i < len(args) ; i++ {
 			if args[i] != atomConstantNil {
@@ -418,7 +418,7 @@ func fnEqualAtom(args []Sexpr) (Sexpr, sexpr_error) {
 }
 
 // evalQuote is a macro; it does not evaluate all its arguments
-func evalQuote(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
+func evalQuote(lst sexpr_general, ctx *evaluationContext) (sexpr_general, sexpr_error) {
 	args, err := unconsifyN(lst, 1)
 	if err != nil {
 		return nil, evaluationError{"quote", err.Error()}
@@ -429,7 +429,7 @@ func evalQuote(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 }
 
 // evalDefine is a macro; it does not evaluate all its arguments
-func evalDefine(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
+func evalDefine(lst sexpr_general, ctx *evaluationContext) (sexpr_general, sexpr_error) {
 	args, err := unconsifyN(lst, 2)
 	if err != nil {
 		return nil, evaluationError{"define", err.Error()}
@@ -461,7 +461,7 @@ func evalDefine(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 	}
 }
 
-func evalLet(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
+func evalLet(lst sexpr_general, ctx *evaluationContext) (sexpr_general, sexpr_error) {
 	args, err := unconsifyN(lst, 2)
 	if err != nil {
 		return nil, evaluationError{"let", err.Error()}
@@ -502,7 +502,7 @@ func evalLet(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 	return evaluateWithContext(args[1], &newCtx)
 }
 
-func evalLambda(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
+func evalLambda(lst sexpr_general, ctx *evaluationContext) (sexpr_general, sexpr_error) {
 	args, err := unconsifyN(lst, 2) // eventually "many"
 	if err != nil {
 		return nil, evaluationError{"lambda", err.Error()}
@@ -535,7 +535,7 @@ func evalLambda(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 
 	body := args[1]
 	definition := fmt.Sprintf("(λ (%s) %s)", bound, args[1].Sprint())
-	apply := func(args []Sexpr) (Sexpr, sexpr_error) {
+	apply := func(args []sexpr_general) (sexpr_general, sexpr_error) {
 		if len(bound) != len(args) {
 			return nil, evaluationError{
 				fmt.Sprintf("%s", definition),
@@ -558,7 +558,7 @@ func evalLambda(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 
 // If none of the first-elements to "cond" are truthy, the eventual
 // value is undefined.  We'll call it "Nil" (I guess)
-func evalCond(lst Sexpr, ctx *evaluationContext) (s Sexpr, serr sexpr_error) {
+func evalCond(lst sexpr_general, ctx *evaluationContext) (s sexpr_general, serr sexpr_error) {
 	args, err := unconsify(lst)
 	if err != nil {
 		return nil, evaluationError{"cond", err.Error()}

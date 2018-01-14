@@ -9,7 +9,7 @@ import (
 // new function is pushed into the stack for evaluation, the
 // symbolTables get new frames that mask the lower ones.
 
-type symbolTable map[sexpr_atom]Sexpr
+type symbolTable map[sexpr_atom]sexpr_general
 
 // evaluationContext is really (currently) just a stack of symbol
 // tables.  It might get more, though.
@@ -33,7 +33,7 @@ func (e *evaluationContext) dump_helper(depth int) string {
 	return ans
 }
 
-func (e *evaluationContext) bind(key sexpr_atom, val Sexpr) error {
+func (e *evaluationContext) bind(key sexpr_atom, val sexpr_general) error {
 	if key.typ != atomSymbol {
 		return errors.New(fmt.Sprintf("Cannot bind non-symbol %q", key))
 	}
@@ -48,7 +48,7 @@ func (e *evaluationContext) bind(key sexpr_atom, val Sexpr) error {
 	return nil
 }
 
-func (e *evaluationContext) lookup(a sexpr_atom) (s Sexpr, ok bool) {
+func (e *evaluationContext) lookup(a sexpr_atom) (s sexpr_general, ok bool) {
 	if e == nil {
 		return nil, false
 	}

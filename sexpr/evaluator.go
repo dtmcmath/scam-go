@@ -13,7 +13,7 @@ func init() {
 // reset the rootSymbolTable.  This is useful for testing!
 func resetEvaluationContext() {
 	globalEvaluationContext = evaluationContext{
-		make(map[sexpr_atom]Sexpr),
+		make(map[sexpr_atom]sexpr_general),
 		nil,
 	}
 
@@ -33,7 +33,7 @@ func resetEvaluationContext() {
 	}
 }
 
-func Evaluate(s Sexpr) Sexpr {
+func Evaluate(s sexpr_general) sexpr_general {
 	if val, err := evaluateWithContext(s, &globalEvaluationContext) ; err != nil {
 		// The error is an S-expression, because it can Sprint!
 		return err
@@ -47,7 +47,7 @@ func Evaluate(s Sexpr) Sexpr {
 	}
 }
 
-func evaluateWithContext(s Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
+func evaluateWithContext(s sexpr_general, ctx *evaluationContext) (sexpr_general, sexpr_error) {
 	switch s := s.(type) {
 	case sexpr_atom: return s.evaluate(ctx)
 	case sexpr_cons:
@@ -63,7 +63,7 @@ func evaluateWithContext(s Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 				return nil, evaluationError{"(eval)", uerr.Error()}
 			}
 			// else
-			args := make([]Sexpr, len(terms))
+			args := make([]sexpr_general, len(terms))
 			var err sexpr_error
 			for idx, term := range terms {
 				if args[idx], err = evaluateWithContext(term, ctx) ; err != nil {
@@ -87,7 +87,7 @@ func evaluateWithContext(s Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 // An evaluator is a decorated S-expression (probably an Atom) that
 // can, when it appears in the Car of a Cons, evaluate the expression
 // into a new S-expression
-type evaluator func(Sexpr, *evaluationContext) (Sexpr, sexpr_error)
+type evaluator func(sexpr_general, *evaluationContext) (sexpr_general, sexpr_error)
 
 // A special kind of error to indicate something about evaluation
 type evaluationError struct{
