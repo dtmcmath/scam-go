@@ -108,7 +108,7 @@ func (p *parser) emit(s Sexpr) {
 	top := p.peekStack()
 	if top == markerQUOTE {
 		p.mustPopStack()
-		s = mkList(Quote, s)
+		s = mkList(atomConstantQuote, s)
 	}
 	if p.stack == nil {
 		// There is no context to roll up; we have a "final" S-expression
@@ -174,8 +174,8 @@ func (p *parser) run() {
 			p.emit(mkAtomSymbol(tok.val))
 		case itemBoolean:
 			switch tok.val {
-			case "t": p.emit(True)
-			case "f": p.emit(False)
+			case "t": p.emit(atomConstantTrue)
+			case "f": p.emit(atomConstantFalse)
 			default:
 				p.paniqf("Illegal boolean token %v", tok)
 			}

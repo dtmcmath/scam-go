@@ -43,16 +43,16 @@ var primitiveMacros = map[string]evaluator {
 	"define": evalDefine,
 	"let":    evalLet,
 	"lambda": evalLambda,
-	"and":    mkLazyReduce("and", True, func(acc Sexpr, val Sexpr) (Sexpr, bool) {
+	"and":    mkLazyReduce("and", atomConstantTrue, func(acc Sexpr, val Sexpr) (Sexpr, bool) {
 		if isFalsey(val) {
-			return False, true
+			return atomConstantFalse, true
 		} else {
 			return acc, false
 		}
 	}),
-	"or":     mkLazyReduce("or", False, func(acc Sexpr, val Sexpr) (Sexpr, bool) {
+	"or":     mkLazyReduce("or", atomConstantFalse, func(acc Sexpr, val Sexpr) (Sexpr, bool) {
 		if !isFalsey(val) {
-			return True, true
+			return atomConstantTrue, true
 		} else {
 			return acc, false
 		}
@@ -81,43 +81,43 @@ var primitiveFunctions = map[string]applicator {
 	"=":      mkNaryFn("=", 2, fnEqualNumber),
 	"eq?":    mkNaryFn("eq?", 2, fnEqualAtom),
 	"null?":  mkNaryFn("null?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
-		if args[0] == Nil {
-			return True, nil
+		if args[0] == atomConstantNil {
+			return atomConstantTrue, nil
 		} else {
-			return False, nil
+			return atomConstantFalse, nil
 		}
 	}),
 	"pair?":  mkNaryFn("pair?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
 		switch args[0].(type) {
 		case sexpr_cons:
-			return True, nil
+			return atomConstantTrue, nil
 		}
 		// else
-		return False, nil
+		return atomConstantFalse, nil
 	}),
 	"not":    mkNaryFn("not", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
-		if args[0] == True {
-			return False, nil
+		if args[0] == atomConstantTrue {
+			return atomConstantFalse, nil
 		} else {
-			return True, nil
+			return atomConstantTrue, nil
 		}
 	}),
 	"zero?":  mkNaryFn("pair?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
-		if args[0] == Zero {
-			return True, nil
+		if args[0] == atomConstantZero {
+			return atomConstantTrue, nil
 		} else {
-			return False, nil
+			return atomConstantFalse, nil
 		}
 	}),
 	"number?":  mkNaryFn("pair?", 1, func(args []Sexpr) (Sexpr, sexpr_error) {
 		switch a := args[0].(type) {
 		case sexpr_atom:
 			if a.typ == atomNumber {
-				return True, nil
+				return atomConstantTrue, nil
 			}
 		}
 		// else
-		return False, nil
+		return atomConstantFalse, nil
 	}),
 }
 /////
@@ -385,33 +385,33 @@ func mkEqualAtomChecker(typ atomType) applicator {
 			case sexpr_atom:
 				atoms = append(atoms, arg)
 			default:
-				return False, nil
+				return atomConstantFalse, nil
 			}
 		}
 		// reaching here, we have atoms
 		// Assume at least one; n-ary 2 (probably)
 		if atoms[0].typ != typ {
-			return False, nil
+			return atomConstantFalse, nil
 		}
 		// now check all the rest are the same
 		for i := 0 ; 1+i < len(atoms) ; i++ {
 			if atoms[1+i] != atoms[i] {
-				return False, nil
+				return atomConstantFalse, nil
 			}
 		}
-		return True, nil
+		return atomConstantTrue, nil
 	}
 }
 var fnEqualNumber = mkEqualAtomChecker(atomNumber)
 var fnEqualSymbol = mkEqualAtomChecker(atomSymbol)
 func fnEqualAtom(args []Sexpr) (Sexpr, sexpr_error) {
-	if args[0] == Nil {
+	if args[0] == atomConstantNil {
 		for i := 1 ; i < len(args) ; i++ {
-			if args[i] != Nil {
-				return False, nil
+			if args[i] != atomConstantNil {
+				return atomConstantFalse, nil
 			}
 		}
-		return True, nil
+		return atomConstantTrue, nil
 	}
 	// else
 	return fnEqualSymbol(args)
@@ -450,7 +450,7 @@ func evalDefine(lst Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 				err2.Error(),
 			}
 		}
-		return Nil, nil
+		return atomConstantNil, nil
 		// TODO:  "nil" isn't "Nil"; define has no value
 		// return nil, nil
 	default:
@@ -571,7 +571,7 @@ func evalCond(lst Sexpr, ctx *evaluationContext) (s Sexpr, serr sexpr_error) {
 				fmt.Sprint("Unrecognizable test %q (%s)", pair, err.Error()),
 			}
 		}
-		if test[0] == Else {
+		if test[0] == atomConstantElse {
 			return evaluateWithContext(test[1], ctx)
 		}
 		// else
@@ -581,5 +581,5 @@ func evalCond(lst Sexpr, ctx *evaluationContext) (s Sexpr, serr sexpr_error) {
 			return evaluateWithContext(test[1], ctx)
 		}
 	}
-	return Nil, nil // or nil, nil, if we get "define" doing that.
+	return atomConstantNil, nil // or nil, nil, if we get "define" doing that.
 }

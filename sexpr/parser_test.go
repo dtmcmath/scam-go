@@ -14,19 +14,19 @@ func TestSimpleParse(t *testing.T) {
 		input string
 		want []Sexpr
 	}{
-		{ "()", []Sexpr{ Nil } },
-		{ "(1)", []Sexpr{ mkCons(atomone, Nil) } },
+		{ "()", []Sexpr{ atomConstantNil } },
+		{ "(1)", []Sexpr{ mkCons(atomone, atomConstantNil) } },
 		{ "1", []Sexpr{ atomone } },
 		{
 			" (1) 2 ",
 			[]Sexpr{
-				mkCons(atomone, Nil),
+				mkCons(atomone, atomConstantNil),
 				atomtwo,
 			},
 		},
 		{
 			"#t #f",
-			[]Sexpr{True, False},
+			[]Sexpr{atomConstantTrue, atomConstantFalse},
 		},
 		{
 			"(cons 1 2)",
@@ -34,7 +34,7 @@ func TestSimpleParse(t *testing.T) {
 				mkCons(
 					primcons,
 					mkCons(atomone,
-						mkCons(atomtwo,Nil),
+						mkCons(atomtwo,atomConstantNil),
 					),
 				),
 			},
@@ -42,22 +42,22 @@ func TestSimpleParse(t *testing.T) {
 		{
 			"'()",
 			[]Sexpr{
-				mkList(Quote, Nil),
+				mkList(atomConstantQuote, atomConstantNil),
 			},
 		},
 		{
 			"'1",
-			[]Sexpr{ mkList(Quote, atomone) },
+			[]Sexpr{ mkList(atomConstantQuote, atomone) },
 		},
 		{
 			"(cons '1 ())",
 			[]Sexpr{
-				mkList(primcons, mkList(Quote, atomone), Nil),
+				mkList(primcons, mkList(atomConstantQuote, atomone), atomConstantNil),
 			},
 		},
 		{
 			"'(#t)",
-			[]Sexpr{mkList(Quote, mkList(True))},
+			[]Sexpr{mkList(atomConstantQuote, mkList(atomConstantTrue))},
 		},
 		{
 			"o o+",
@@ -73,10 +73,10 @@ func TestSimpleParse(t *testing.T) {
 		// 				mkCons( atomPrimitives[itemCar],
 		// 					mkCons(
 		// 						mkCons(atomone, atomtwo},
-		// 						Nil,
+		// 						atomConstantNil,
 		// 					),
 		// 				),
-		// 				mkCons( atomone, Nil ),
+		// 				mkCons( atomone, atomConstantNil ),
 		// 			),
 		// 		),
 		// 	},

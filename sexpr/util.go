@@ -13,7 +13,7 @@ import (
 // S-expression that is the List (sexpr_cons's) represented by them.
 func consify(slist []Sexpr) Sexpr {
 	if len(slist) == 0 {
-		return Nil
+		return atomConstantNil
 	}
 	// else
 	return mkCons(slist[0], consify(slist[1:]))
@@ -21,7 +21,7 @@ func consify(slist []Sexpr) Sexpr {
 
 func unconsify(list Sexpr) ([]Sexpr, error) {
 	var ans []Sexpr
-	for idx, lst := 0, list ; lst != Nil ; idx++ {
+	for idx, lst := 0, list ; lst != atomConstantNil ; idx++ {
 		switch l := lst.(type) {
 		case sexpr_atom:
 			errmsg := fmt.Sprintf(
@@ -105,5 +105,5 @@ func mkRuneChannel(in string) <-chan rune {
 	return ans
 }
 
-// isFalsey says whether "if" should skip it.  Only False and Nil are falsey.
-func isFalsey(s Sexpr) bool { return s == Nil || s == False }
+// isFalsey says whether "if" should skip it.  Only atomConstantFalse and atomConstantNil are falsey.
+func isFalsey(s Sexpr) bool { return s == atomConstantNil || s == atomConstantFalse }

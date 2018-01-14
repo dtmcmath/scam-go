@@ -81,7 +81,7 @@ func evaluateWithContext(s Sexpr, ctx *evaluationContext) (Sexpr, sexpr_error) {
 	default:
 		panic(fmt.Sprintf("(Evaluate) Unrecognized Sexpr (type=%T) %v", s, s))
 	}
-	return Nil, nil
+	return atomConstantNil, nil
 }
 
 // An evaluator is a decorated S-expression (probably an Atom) that

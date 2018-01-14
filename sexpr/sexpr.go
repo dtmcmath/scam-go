@@ -29,8 +29,8 @@ func (a sexpr_atom) Sprint() string {
 	case atomNil:   return "()"
 	case atomBoolean:
 		switch a {
-		case True:  return "#t"
-		case False: return "#f"
+		case atomConstantTrue:  return "#t"
+		case atomConstantFalse: return "#f"
 		default:
 			panic(fmt.Sprintf("The faux boolean atom %+v", a))
 		}
@@ -47,8 +47,8 @@ func (a sexpr_atom) String() string {
 	case atomNil: return "Nil"
 	case atomBoolean:
 		switch a {
-		case True: return "#t"
-		case False: return "#f"
+		case atomConstantTrue: return "#t"
+		case atomConstantFalse: return "#f"
 		default:
 			panic(fmt.Sprintf("The faux boolean atom %+v", a))
 		}
@@ -93,12 +93,12 @@ func (a sexpr_atom) evaluate(ctx *evaluationContext) (Sexpr, sexpr_error) {
 var (
 	// These are really a constant, but we call them variables.
 	// Please don't try to change them.
-	Nil sexpr_atom = sexpr_atom{atomNil, "nil"}
-	True sexpr_atom = sexpr_atom{atomBoolean, "t"}
-	False sexpr_atom = sexpr_atom{atomBoolean, "f"}
-	Quote sexpr_atom = mkAtomSymbol("quote")
-	Else sexpr_atom = mkAtomSymbol("else")
-	Zero sexpr_atom = mkAtomNumber("0")
+	atomConstantNil sexpr_atom = sexpr_atom{atomNil, "nil"}
+	atomConstantTrue sexpr_atom = sexpr_atom{atomBoolean, "t"}
+	atomConstantFalse sexpr_atom = sexpr_atom{atomBoolean, "f"}
+	atomConstantQuote sexpr_atom = mkAtomSymbol("quote")
+	atomConstantElse sexpr_atom = mkAtomSymbol("else")
+	atomConstantZero sexpr_atom = mkAtomNumber("0")
 )
 // TODO:  Different string representations of the same number are
 // different atoms; are they comparable?
@@ -133,7 +133,7 @@ func mkCons(car Sexpr, cdr Sexpr) sexpr_cons {
 }
 // mkList is a helper method to replace
 //
-//   mkCons(a, mkCons(b, mkCons(c, Nil)))
+//   mkCons(a, mkCons(b, mkCons(c, atomConstantNil)))
 //
 // with just
 //
@@ -181,7 +181,7 @@ func (c sexpr_cons) Sprint() string {
 
 		switch cdr := ptr.cdr.(type) {
 		case sexpr_atom:
-			if cdr == Nil {
+			if cdr == atomConstantNil {
 				return str + ")"
 			} else {
 				return str + fmt.Sprintf(" . %s)", cdr.Sprint())

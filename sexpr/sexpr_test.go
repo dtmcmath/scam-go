@@ -19,19 +19,19 @@ func TestConsify(t *testing.T) {
 	} {
 		{
 			[]Sexpr{},
-			Nil,
+			atomConstantNil,
 		},
 		{
-			[]Sexpr{Nil},
-			mkCons(Nil, Nil),
+			[]Sexpr{atomConstantNil},
+			mkCons(atomConstantNil, atomConstantNil),
 		},
 		{
 			[]Sexpr{atomfoo},
-			mkCons(atomfoo, Nil),
+			mkCons(atomfoo, atomConstantNil),
 		},
 		{
 			[]Sexpr{atomfoo, atomone},
-			mkCons(atomfoo, mkCons(atomone, Nil)),
+			mkCons(atomfoo, mkCons(atomone, atomConstantNil)),
 		},
 	}
 

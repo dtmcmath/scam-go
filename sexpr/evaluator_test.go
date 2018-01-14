@@ -26,13 +26,13 @@ func TestEvaluateArithmetic(t *testing.T) {
 		},
 		{ "(+ 1 2 3 4 5)", []Sexpr{ mkAtomNumber("15") } },
 		{ "(- 5 2)", []Sexpr{ atomthree } },
-		{ "(= 1 2)", []Sexpr{ False } },
-		{ "(= 2 2)", []Sexpr{ True } },
-		{ "(= (+ 1 2) 3)", []Sexpr{ True } },
+		{ "(= 1 2)", []Sexpr{ atomConstantFalse } },
+		{ "(= 2 2)", []Sexpr{ atomConstantTrue } },
+		{ "(= (+ 1 2) 3)", []Sexpr{ atomConstantTrue } },
 		{ "(expt 2 3)", []Sexpr{ mkAtomNumber("8") } },
-		{ "(= (expt 2 3) 8)", []Sexpr{ True } },
+		{ "(= (expt 2 3) 8)", []Sexpr{ atomConstantTrue } },
 		{ "(expt 4 0.5)", []Sexpr{ mkAtomNumber("2.000000") } },
-		{ "(= (expt 4 0.5) 2.000000)", []Sexpr{ True } },
+		{ "(= (expt 4 0.5) 2.000000)", []Sexpr{ atomConstantTrue } },
 		{ "(* 4 3) (* 2.718281 3.141593)", []Sexpr{ mkAtomNumber("12"), mkAtomNumber("8.539733") } },
 		{ "(/ 4 3) (/ (* 40 37) 40)", []Sexpr{ mkAtomNumber("1.333333"), mkAtomNumber("37") } },
 	}
@@ -63,21 +63,21 @@ func TestEvaluateEqQ(t *testing.T) {
 		want []Sexpr
 	} {
 		{ "(car (cons 1 2))", []Sexpr{ atomone } },
-		{ "(= (car (cons 1 2)) 1)", []Sexpr{ True } },
-		{ "(eq? (cons 1 2) (cons 1 2))", []Sexpr{ False } },
-		{ "'()", []Sexpr{ Nil } },
-		{ "()", []Sexpr{ Nil } },
+		{ "(= (car (cons 1 2)) 1)", []Sexpr{ atomConstantTrue } },
+		{ "(eq? (cons 1 2) (cons 1 2))", []Sexpr{ atomConstantFalse } },
+		{ "'()", []Sexpr{ atomConstantNil } },
+		{ "()", []Sexpr{ atomConstantNil } },
 		{ "'1", []Sexpr{ atomone } },
 		{ "(cons '1 ())", []Sexpr{ mkList(atomone) } },
 		{
 			"(define a 2)(= 2 a)",
-			[]Sexpr{ Nil, True },
+			[]Sexpr{ atomConstantNil, atomConstantTrue },
 		},
 		{
 			"(define a 1)(define b 2)(cons a b)",
-			[]Sexpr{ Nil, Nil, mkCons(atomone, atomtwo) },
+			[]Sexpr{ atomConstantNil, atomConstantNil, mkCons(atomone, atomtwo) },
 		},
-		{ "(eq? '() '())", []Sexpr{ True } },
+		{ "(eq? '() '())", []Sexpr{ atomConstantTrue } },
 	}
 
 	for _, test := range tests {
@@ -91,14 +91,14 @@ func TestEvaluateLogic(t *testing.T) {
 		input string
 		want []Sexpr
 	} {
-		{ "(and)", []Sexpr{ True } },
-		{ "(and #t)", []Sexpr{ True } },
-		{ "(and (eq? 'a 'a) #t)", []Sexpr{ True } },
-		{ "(and (eq? 'a 'b) #t)", []Sexpr{ False } },
-		{ "(and (eq? 'a 'b) unbound)", []Sexpr{ False } },
-		{ "(not #t)", []Sexpr{ False } },
-		{ "(not ())", []Sexpr{ True } },
-		{ "(not #f)", []Sexpr{ True } },
+		{ "(and)", []Sexpr{ atomConstantTrue } },
+		{ "(and #t)", []Sexpr{ atomConstantTrue } },
+		{ "(and (eq? 'a 'a) #t)", []Sexpr{ atomConstantTrue } },
+		{ "(and (eq? 'a 'b) #t)", []Sexpr{ atomConstantFalse } },
+		{ "(and (eq? 'a 'b) unbound)", []Sexpr{ atomConstantFalse } },
+		{ "(not #t)", []Sexpr{ atomConstantFalse } },
+		{ "(not ())", []Sexpr{ atomConstantTrue } },
+		{ "(not #f)", []Sexpr{ atomConstantTrue } },
 		{
 			`
 (cond
@@ -149,15 +149,15 @@ func TestEvaluateQuote(t *testing.T) {
 	} {
 		{
 			"(define a 2)'(a a)",
-			[]Sexpr{ Nil, mkList(atoma, atoma) },
+			[]Sexpr{ atomConstantNil, mkList(atoma, atoma) },
 		},
 		{
 			"(define a 3)(define b 2)(cons 'a (cons 'b '()))",
-			[]Sexpr{ Nil, Nil, mkList(atoma, atomb) },
+			[]Sexpr{ atomConstantNil, atomConstantNil, mkList(atoma, atomb) },
 		},
 		{
 			"(define a 1) 'a",
-			[]Sexpr{ Nil, atoma },
+			[]Sexpr{ atomConstantNil, atoma },
 		},
 	}
 
@@ -178,7 +178,7 @@ func TestEvaluatorBinding(t *testing.T) {
 (define b 2)
 (let ([a 3] [b 4]) (= 7 (+ a b)))
 `,
-			[]Sexpr{ Nil, Nil, True },
+			[]Sexpr{ atomConstantNil, atomConstantNil, atomConstantTrue },
 		},
 		{ // Shadowing
 			`
@@ -186,11 +186,11 @@ func TestEvaluatorBinding(t *testing.T) {
 (define b 2)
 (let ([b 5]) (+ a b))
 `,
-			[]Sexpr{ Nil, Nil, mkAtomNumber("6") },
+			[]Sexpr{ atomConstantNil, atomConstantNil, mkAtomNumber("6") },
 		},
 		{
 			"(let ([a 3] [b 4]) (= 7 (+ a b)))",
-			[]Sexpr{ True },
+			[]Sexpr{ atomConstantTrue },
 		},
 		{ // Shadowing, no leaking
 			`
@@ -199,7 +199,7 @@ func TestEvaluatorBinding(t *testing.T) {
 (let ([b 5]) (+ a b))
 (+ a b)
 `,
-			[]Sexpr{ Nil, Nil, mkAtomNumber("6"), atomthree },
+			[]Sexpr{ atomConstantNil, atomConstantNil, mkAtomNumber("6"), atomthree },
 		},
 	}
 
@@ -218,12 +218,12 @@ func TestEvaluatorBinding2(t *testing.T) {
 	_, sexprs := Parse("test", mkRuneChannel(program1))
 	s1_1 := <- sexprs
 	s1_1 = Evaluate(s1_1)
-	if s1_1 != Nil {
-		t.Errorf("Binding: define got %v, want Nil", s1_1)
+	if s1_1 != atomConstantNil {
+		t.Errorf("Binding: define got %v, want atomConstantNil", s1_1)
 	}
 	s1_2 := <- sexprs
 	s1_2 = Evaluate(s1_2)
-	if s1_2 != True {
+	if s1_2 != atomConstantTrue {
 		t.Errorf("Binding: (= alpha 1) got %v, want #t", s1_2)
 	}
 	_, ok := <- sexprs
@@ -268,12 +268,12 @@ func TestEvaluatorBinding2(t *testing.T) {
 	}
 	s3_2 := <- sexprs
 	s3_2 = Evaluate(s3_2)
-	if s3_2 != Nil {
-		t.Errorf("Binding: define got %v, want Nil", s3_2)
+	if s3_2 != atomConstantNil {
+		t.Errorf("Binding: define got %v, want atomConstantNil", s3_2)
 	}
 	s3_3 := <- sexprs
 	s3_3 = Evaluate(s3_3)
-	if s3_3 != True {
+	if s3_3 != atomConstantTrue {
 		t.Errorf("Binding: (= alpha 1) got %v, want #t", s3_3)
 	}
 	_, ok = <- sexprs
@@ -294,14 +294,14 @@ func TestEvaluatorLambda(t *testing.T) {
 (define add1 (lambda (x) (+ x 1)))
 (= (add1 1) 2)
 `,
-			[]Sexpr{ Nil, True },
+			[]Sexpr{ atomConstantNil, atomConstantTrue },
 		},
 		{
 			`
 (define add1 (lambda (x) (+ x 1)))
 (add1 2)
 `,
-			[]Sexpr{ Nil, atomthree },
+			[]Sexpr{ atomConstantNil, atomthree },
 		},
 		{
 			`
@@ -312,7 +312,7 @@ func TestEvaluatorLambda(t *testing.T) {
 (atom? '())
 (atom? '(a b))
 `,
-			[]Sexpr{ Nil, True, False, False },
+			[]Sexpr{ atomConstantNil, atomConstantTrue, atomConstantFalse, atomConstantFalse },
 		},
 		{
 			`
@@ -321,7 +321,7 @@ func TestEvaluatorLambda(t *testing.T) {
 (nonpair? '())
 (nonpair? '(a b))
 `,
-			[]Sexpr{ Nil, True, True, False },
+			[]Sexpr{ atomConstantNil, atomConstantTrue, atomConstantTrue, atomConstantFalse },
 		},
 		{ // Chapter 10
 			`
@@ -332,7 +332,7 @@ func TestEvaluatorLambda(t *testing.T) {
 			[]Sexpr{
 				mkCons(
 					consify([]Sexpr{mkAtomSymbol("from"), mkAtomSymbol("nothing"), mkAtomSymbol("comes"), mkAtomSymbol("something")}),
-					Nil,
+					atomConstantNil,
 				),
 			},
 		},
