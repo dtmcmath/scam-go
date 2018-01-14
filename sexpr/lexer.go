@@ -238,30 +238,6 @@ func lex(name string, src <-chan rune) (*lexer, chan item) {
     return l, l.items
 }
 
-// // lex creates a new scanner for the input string.
-// func lex(name, input string) *lexer {
-//     l := &lexer{
-//         name:  name,
-//         input: input,
-//         state: lexText,
-//         items: make(chan item, 2), // Two items sufficient.
-//     }
-//     return l
-// }
-
-// // nextItem returns the next item from the input.
-// func (l *lexer) nextItem() item {
-//     for {
-//         select {
-//         case item := <-l.items:
-//             return item
-//         default:
-//             l.state = l.state(l)
-//         }
-//     }
-//     panic("not reached")
-// }
-
 ////
 // Helpers that "define" the language
 ////

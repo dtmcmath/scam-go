@@ -63,24 +63,6 @@ func TestSimpleParse(t *testing.T) {
 			"o o+",
 			[]sexpr_general{ mkAtomSymbol("o"), mkAtomSymbol("o+") },
 		},
-		// {
-		// 	"(eq? (car (cons 1 2)) 1)",
-		// 	// Bleh.  I've lost track!!!
-		// 	[]sexpr_general{
-		// 		mkCons(
-		// 			atomPrimitives[itemEqQ],
-		// 			mkCons(
-		// 				mkCons( atomPrimitives[itemCar],
-		// 					mkCons(
-		// 						mkCons(atomone, atomtwo},
-		// 						atomConstantNil,
-		// 					),
-		// 				),
-		// 				mkCons( atomone, atomConstantNil ),
-		// 			),
-		// 		),
-		// 	},
-		// },
 	}
 
 	for _, test := range tests {

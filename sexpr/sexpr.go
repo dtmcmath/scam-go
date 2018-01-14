@@ -1,8 +1,9 @@
 // An S-expression is either an atom or the cons of two S-expressions.
+// (or an error, or a "func_expr" or a "macro_expr")
 package sexpr
 
 import (
-	"errors"
+	// "errors"
 	"fmt"
 	"io"
 	// "runtime/debug"
@@ -139,39 +140,6 @@ func mkCons(car sexpr_general, cdr sexpr_general) sexpr_cons {
 //
 //   mkList(a, b, c)
 func mkList(s ...sexpr_general) sexpr_general { return consify(s) }
-
-func getCar(s sexpr_general) (sexpr_general, error) {
-	switch s := s.(type) {
-	case sexpr_atom: return nil, errors.New("Cannot car an Atom")
-	case sexpr_cons: return s.car, nil
-	default:
-		panic(fmt.Sprintf("Unrecognized Sexpr %v", s))
-	}
-}
-
-func getCdr(s sexpr_general) (sexpr_general, error) {
-	switch s := s.(type) {
-	case sexpr_atom: return nil, errors.New("Cannot cdr an Atom")
-	case sexpr_cons: return s.cdr, nil
-	default:
-		panic(fmt.Sprintf("Unrecognized Sexpr %v", s))
-	}
-}
-
-func getCadr(s sexpr_general) (sexpr_general, error) {
-	if cdr, err := getCdr(s) ; err != nil {
-		return nil, err
-	} else {
-		return getCar(cdr)
-	}
-}
-func getCddr(s sexpr_general) (sexpr_general, error) {
-	if cdr, err := getCdr(s) ; err != nil {
-		return nil, err
-	} else {
-		return getCdr(cdr)
-	}
-}
 
 func (c sexpr_cons) Sprint() string {
 	str := "("
