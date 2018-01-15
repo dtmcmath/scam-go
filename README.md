@@ -68,20 +68,36 @@ You should now be able to successfully execute SCAM.
 
 ## Usage
 
+### ...without compiling
+
 To evaluate a file, just
 
-    go run scam.go -in examples/arithmetic.ss
+    go run cmd/scam/main.go -in examples/arithmetic.ss
 
 To use `scam` as a REPL, use
 
-    go run scam.go
+    go run cms/scam/main.go
 
-and type.
+and type.  There is no "exit" command; send end-of-file with `C-d`.
 
 Or
 
-    go run scam_server.go -port 8000 &
+    go run cmd/scam_server/main.go -port 8000 &
     echo "(= (car (cons 1 2) 2))" | nc localhost 8000
+
+### ...with compiling
+
+Install to `$GOPATH/bin` with
+
+    go install cmd/scam/main.go
+    go install cmd/scam_server/main.go
+
+to create executables
+
+    $GOPATH/bin/scam
+    $GOPATH/bin/scam_server
+
+respectively
 
 ## For further reading
 
