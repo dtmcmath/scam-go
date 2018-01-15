@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"io"
 	// "runtime/debug"
+	"os"
 	"strconv"
 	//"strings"
-	"os"
+	"sync"
 )
 
 type atomType int
@@ -107,7 +108,10 @@ var atomNumberPool = make(map[string]sexpr_atom)
 var atomSymbolPool = make(map[string]sexpr_atom)
 
 func atomFactory(t atomType, pool map[string]sexpr_atom) func(string) sexpr_atom {
+	lock := sync.Mutex{}
 	return func (s string) sexpr_atom {
+		lock.Lock()
+		defer lock.Unlock()
 		atom, ok := pool[s]
 		if !ok {
 			atom = sexpr_atom{t, s}
@@ -121,6 +125,7 @@ var mkAtomSymbol = atomFactory(atomSymbol, atomSymbolPool)
 var mkAtomNumber = atomFactory(atomNumber, atomNumberPool)
 
 var currentConsNumber int64
+var currentConsNumberLock sync.Mutex
 type sexpr_cons struct {
 	car Sexpr
 	cdr Sexpr
@@ -128,7 +133,11 @@ type sexpr_cons struct {
 }
 
 func mkCons(car Sexpr, cdr Sexpr) sexpr_cons {
-	defer func() {currentConsNumber += 1}()
+	defer func() {
+		currentConsNumber += 1
+		currentConsNumberLock.Unlock()
+	}()
+	currentConsNumberLock.Lock()
 	return sexpr_cons{car, cdr, currentConsNumber}
 }
 // mkList is a helper method to replace
