@@ -94,6 +94,9 @@ type evaluationError struct{
 	context string
 	message string
 }
+func MkEvaluationError(context string, message string) evaluationError {
+	return evaluationError{context, message}
+}
 // A generic, nullable version of the evaluation error.  We need to
 // use the real type (evaluationError) in return values but the
 // interface (sexpr_error) in method signatures.

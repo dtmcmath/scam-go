@@ -41,7 +41,23 @@ func (r *repl) Run() {
 
 	_, sexprs := sexpr.Parse("parser_"+r.name, ch)
 	for sx := range sexprs {
-		val := sexpr.Evaluate(sx)
+		back := make(sexpr.SexprChannel)
+		go func() {
+			// Since "sexpr.sexpr_general" isn't exported,
+			// we can't actually name the signature of
+			// this method!  We can't give "sx" a type.
+			// But it works as an anonymous function,
+			// somehow.  That seems either spooky or
+			// buggy, and I can't tell which.
+			defer func() {
+				if err := recover() ; err != nil {
+					ans := sexpr.MkEvaluationError("root", fmt.Sprintf("%+v", err))
+					back <- ans
+				}
+			}()
+			back <- sexpr.Evaluate(sx)
+		}()
+		val := <- back
 		if _, err := sexpr.Fprint(r.out, val) ; err != nil {
 			fmt.Fprint(r.err, "!!ERROR: ", err)
 		}

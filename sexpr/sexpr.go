@@ -184,6 +184,7 @@ func (c sexpr_cons) String() string {
 type sexpr_general interface{
 	Sprint() string
 }
+type SexprChannel chan sexpr_general
 
 func Sprint(s sexpr_general) string {
 	return s.Sprint()
