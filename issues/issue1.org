@@ -15,60 +15,223 @@ fatal error: concurrent map read and map write
 ** Steps to reproduce
 
 It seems random/intermittend.  Grr.
+
+** Analysis
+
+It's dying in
+
+#+BEGIN_SRC scheme
+(define o+
+  (lambda (n m)
+    (cond
+      ((zero? m) n)
+      (else (add1 (o+ n (sub1 m)))))))
+#+END_SRC
+
+and seems to be parsing "o" and "+" and the definition as three things.
+
 ** Trace info
 
 #+BEGIN_SRC
+> biblio:scam mcdave (schemer_04)$ go run scam.go -in examples/scheme-04-numbers.ss 
+SCAM Version 0.1
+Please be gentle
+
+> ;
+; Chapter 4 of The Little Schemer:
+; Numbers Games
+;
+; Code examples assemled by Peteris Krumins (peter@catonmat.net).
+; His blog is at http://www.catonmat.net  --  good coders code, great reuse.
+;
+; Get yourself this wonderful book at Amazon: http://bit.ly/4GjWdP
+;
+
+; Assume add1 is a primitive
+;
+(define add1
+  (lambda (n) (+ n 1)))
+
+; Example of add1
+;
+(add1 67)       ; 68
+
+; Assume sub1 is a primitive
+;
+(define sub1
+  (lambda (n) (- n 1)))
+
+; Example of sub1
+;
+(sub1 5)        ; 5
+
+; Example of zero?
+;
+(zero? 0)       ; true
+(zero? 1492)    ; false
+
+; The o+ function adds two numbers
+;
+(define o+
+  (lambda (n m)
+    (cond
+      ((zero? m) n)
+      (else (add1 (o+ n (sub1 m)))))))
+
+; Example of o+
+;
+(o+ 46 12)      ; 58
+
+; The o- function subtracts one number from the other
+;
+(define o-
+  (lambda (n m)
+    (cond
+      ((zero? m) n)
+      (else (sub1 (o- n (sub1 m)))))))
+
+; Example of o-
+;
+(o- 14 3)       ; 11
+(o- 17 9)       ; 8
+
+; Examples of tups (tup is short for tuple)
+;
+'(2 111 3 79 47 6)
+'(8 55 5 555)
+'()
+
+; Examples of not-tups
+;
+'(1 2 8 apple 4 3)      ; not-a-tup because apple is not a number
+'(3 (7 4) 13 9)         ; not-a-tup because (7 4) is a list of numbers, not a number
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                                                                            ;
+; The first commandment (first revision)                                     ;
+;                                                                            ;
+; When recurring on a list of atoms, lat, ask two questions about it:        ;
+; (null? lat) and else.                                                      ;
+; When recurring on a number, n, ask two questions about it: (zero? n) and   ;
+; else.                                                                      ;
+;                                                                            ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; The addtup function adds all numbers in a tup
+;
+(define addtup
+  (lambda (tup)
+    (cond
+      ((null? tup) 0)
+      (else (o+ (car tup) (addtup (cdr tup)))))))
+
+; Examples of addtup
+;
+(addtup '(3 5 2 8))     ; 18
+(addtup '(15 6 7 12 3)) ; 43
+
+; The o* function multiplies two numbers
+;
+(define o*
+  (lambda (n m)
+    (cond
+      ((zero? m) 0)
+      (else (o+ n (o* n (sub1 m)))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                                                                            ;
+; The fourth commandment (first revision)                                    ;
+;                                                                            ;
+; Always change at least one argument while recurring. It must be changed to ;
+; be closer to termination. The changing argument must be tested in the      ;
+; termination condition:                                                     ;
+; when using cdr, test the termination with null? and                        ;
+; when using sub1, test termination with zero?.                              ;
+;                                                                            ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Examples of o*
+;
+(o* 5 3)                ; 15
+(o* 13 4)               ; 52
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                                                                            ;
+; The fifth commandment                                                      ;
+;                                                                            ;
+; When building a value with o+, always use 0 for the value of the           ;
+; terminating line, for adding 0 does not change the value of an addition.   ;
+;                                                                            ;
+; When building a value with o*, always use 1 for the value of the           ;
+; ter()
+> 68
+> ()
+> 4
+> #t
+> #f
+> Exception in define: Expected 2 arguments, got 3
+> Exception in lookup: Variable Sym(o) is not bound
+> ()
+> 11
+> fatal error: concurrent map read and map write
+
 goroutine 1 [running]:
 runtime.throw(0x10ee70d, 0x21)
-	/usr/local/Cellar/go/1.9.2/libexec/src/runtime/panic.go:605 +0x95 fp=0xc42019e778 sp=0xc42019e758 pc=0x1027b75
-runtime.mapaccess2_faststr(0x10cd100, 0xc42000e2a0, 0xc42009a459, 0x1, 0x1, 0x1)
-	/usr/local/Cellar/go/1.9.2/libexec/src/runtime/hashmap_fast.go:324 +0x47a fp=0xc42019e7d0 sp=0xc42019e778 pc=0x100b28a
-github.mheducation.com/dave-mcmath/scam/sexpr.atomFactory.func1(0xc42009a459, 0x1, 0xc420044870, 0x1, 0x1)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/sexpr.go:111 +0x5c fp=0xc42019e820 sp=0xc42019e7d0 pc=0x10aa55c
-github.mheducation.com/dave-mcmath/scam/sexpr.intOrFloat.Sexprize(0x1, 0x3ff0000000000000, 0xc42009e201, 0x0, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:229 +0xe0 fp=0xc42019e8a8 sp=0xc42019e820 pc=0x109fbe0
-github.mheducation.com/dave-mcmath/scam/sexpr.fnMinus(0xc42009c7e0, 0x2, 0x2, 0x600200449e8, 0x20, 0x20, 0xc42009c7e0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:285 +0x103 fp=0xc42019e928 sp=0xc42019e8a8 pc=0x109fe73
-github.mheducation.com/dave-mcmath/scam/sexpr.mkNaryFn.func1(0xc42009c7e0, 0x2, 0x2, 0x11633a0, 0xc42009c800, 0x0, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:131 +0x80 fp=0xc42019e9f0 sp=0xc42019e928 pc=0x10a8ed0
-github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc4200e22a0, 0xc4200ea270, 0x1, 0x11633a0, 0xc42009c6e0, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:73 +0x539 fp=0xc42019eb60 sp=0xc42019e9f0 pc=0x109eb99
-github.mheducation.com/dave-mcmath/scam/sexpr.evalLambda.func1(0xc4200ea260, 0x1, 0x1, 0x11633a0, 0xc42009c6e0, 0x0, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:456 +0x3e7 fp=0xc42019ec98 sp=0xc42019eb60 pc=0x10aa137
-github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc42000e810, 0xc4200ea1c0, 0x11633a0, 0xc42009c580, 0x0, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:73 +0x539 fp=0xc42019ee08 sp=0xc42019ec98 pc=0x109eb99
-github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc42000e8d0, 0xc4200ea1c0, 0xc4200ea230, 0x1, 0x1, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:69 +0x45a fp=0xc42019ef78 sp=0xc42019ee08 pc=0x109eaba
-github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc42000e930, 0xc4200ea1c0, 0x4, 0x1, 0x2, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:69 +0x45a fp=0xc42019f0e8 sp=0xc42019ef78 pc=0x109eaba
-github.mheducation.com/dave-mcmath/scam/sexpr.evalCond(0x11633e0, 0xc42000ea20, 0xc4200ea1c0, 0x1163360, 0xc42000a180, 0x0, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:477 +0x3dc fp=0xc42019f200 sp=0xc42019f0e8 pc=0x10a1f5c
-github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc42000ea50, 0xc4200ea1c0, 0x1, 0x11633a0, 0xc42009c6e0, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:76 +0x31e fp=0xc42019f370 sp=0xc42019f200 pc=0x109e97e
-github.mheducation.com/dave-mcmath/scam/sexpr.evalLambda.func1(0xc42009c660, 0x2, 0x2, 0x11633a0, 0xc42009c6e0, 0x0, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:456 +0x3e7 fp=0xc42019f4a8 sp=0xc42019f370 pc=0x10aa137
-github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc42000e8d0, 0xc4200ea0e0, 0xc4200ea150, 0x1, 0x1, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:73 +0x539 fp=0xc42019f618 sp=0xc42019f4a8 pc=0x109eb99
-github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc42000e930, 0xc4200ea0e0, 0x4, 0x1, 0x2, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:69 +0x45a fp=0xc42019f788 sp=0xc42019f618 pc=0x109eaba
-github.mheducation.com/dave-mcmath/scam/sexpr.evalCond(0x11633e0, 0xc42000ea20, 0xc4200ea0e0, 0x1163360, 0xc42000a180, 0x0, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:477 +0x3dc fp=0xc42019f8a0 sp=0xc42019f788 pc=0x10a1f5c
-github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc42000ea50, 0xc4200ea0e0, 0x1, 0x11633a0, 0xc42009c5a0, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:76 +0x31e fp=0xc42019fa10 sp=0xc42019f8a0 pc=0x109e97e
-github.mheducation.com/dave-mcmath/scam/sexpr.evalLambda.func1(0xc42009c560, 0x2, 0x2, 0x11633a0, 0xc42009c5a0, 0x0, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:456 +0x3e7 fp=0xc42019fb48 sp=0xc42019fa10 pc=0x10aa137
-github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc42011c120, 0x1174b10, 0xc4200780c0, 0xc420045d78, 0x1, 0x101)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:73 +0x539 fp=0xc42019fcb8 sp=0xc42019fb48 pc=0x109eb99
-github.mheducation.com/dave-mcmath/scam/sexpr.Evaluate(0x11633e0, 0xc42011c120, 0xc420045d01, 0x1)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:37 +0x45 fp=0xc42019fd00 sp=0xc42019fcb8 pc=0x109e5e5
+	/usr/local/Cellar/go/1.9.2/libexec/src/runtime/panic.go:605 +0x95 fp=0xc4201ae3b8 sp=0xc4201ae398 pc=0x1027b75
+runtime.mapaccess2_faststr(0x10cd100, 0xc42000e2a0, 0xc42001a90a, 0x2, 0x2, 0x2)
+	/usr/local/Cellar/go/1.9.2/libexec/src/runtime/hashmap_fast.go:324 +0x47a fp=0xc4201ae410 sp=0xc4201ae3b8 pc=0x100b28a
+github.mheducation.com/dave-mcmath/scam/sexpr.atomFactory.func1(0xc42001a90a, 0x2, 0xc4201ae4b0, 0x1, 0x1)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/sexpr.go:111 +0x5c fp=0xc4201ae460 sp=0xc4201ae410 pc=0x10aa55c
+github.mheducation.com/dave-mcmath/scam/sexpr.intOrFloat.Sexprize(0xa, 0x4024000000000000, 0xc420016b01, 0x0, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:229 +0xe0 fp=0xc4201ae4e8 sp=0xc4201ae460 pc=0x109fbe0
+github.mheducation.com/dave-mcmath/scam/sexpr.fnMinus(0xc42019eb20, 0x2, 0x2, 0x600201ae628, 0x20, 0x20, 0xc42019eb20)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:285 +0x103 fp=0xc4201ae568 sp=0xc4201ae4e8 pc=0x109fe73
+github.mheducation.com/dave-mcmath/scam/sexpr.mkNaryFn.func1(0xc42019eb20, 0x2, 0x2, 0x11633a0, 0xc42019eb40, 0x0, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:131 +0x80 fp=0xc4201ae630 sp=0xc4201ae568 pc=0x10a8ed0
+github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc4200da0f0, 0xc42004f220, 0x1, 0x11633a0, 0xc42019eae0, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:73 +0x539 fp=0xc4201ae7a0 sp=0xc4201ae630 pc=0x109eb99
+github.mheducation.com/dave-mcmath/scam/sexpr.evalLambda.func1(0xc42004ebd0, 0x1, 0x1, 0x11633a0, 0xc42019eae0, 0x0, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:456 +0x3e7 fp=0xc4201ae8d8 sp=0xc4201ae7a0 pc=0x10aa137
+github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc42000e930, 0xc42004eb60, 0x4, 0x1, 0x2, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:73 +0x539 fp=0xc4201aea48 sp=0xc4201ae8d8 pc=0x109eb99
+github.mheducation.com/dave-mcmath/scam/sexpr.evalCond(0x11633e0, 0xc4200da8d0, 0xc42004eb60, 0x1163360, 0xc42000a140, 0x0, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:477 +0x3dc fp=0xc4201aeb60 sp=0xc4201aea48 pc=0x10a1f5c
+github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc4200da900, 0xc42004eb60, 0x1, 0x11633a0, 0xc42000bec0, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:76 +0x31e fp=0xc4201aecd0 sp=0xc4201aeb60 pc=0x109e97e
+github.mheducation.com/dave-mcmath/scam/sexpr.evalLambda.func1(0xc42000be40, 0x2, 0x2, 0x11633a0, 0xc42000bec0, 0x0, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:456 +0x3e7 fp=0xc4201aee08 sp=0xc4201aecd0 pc=0x10aa137
+github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc42000e8d0, 0xc42004ea90, 0xc42004eb00, 0x1, 0x1, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:73 +0x539 fp=0xc4201aef78 sp=0xc4201aee08 pc=0x109eb99
+github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc42000e930, 0xc42004ea90, 0x4, 0x1, 0x2, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:69 +0x45a fp=0xc4201af0e8 sp=0xc4201aef78 pc=0x109eaba
+github.mheducation.com/dave-mcmath/scam/sexpr.evalCond(0x11633e0, 0xc4200da8d0, 0xc42004ea90, 0x1163360, 0xc42000a140, 0x0, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:477 +0x3dc fp=0xc4201af200 sp=0xc4201af0e8 pc=0x10a1f5c
+github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc4200da900, 0xc42004ea90, 0x1, 0x11633a0, 0xc42000bd80, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:76 +0x31e fp=0xc4201af370 sp=0xc4201af200 pc=0x109e97e
+github.mheducation.com/dave-mcmath/scam/sexpr.evalLambda.func1(0xc42000bd00, 0x2, 0x2, 0x11633a0, 0xc42000bd80, 0x0, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:456 +0x3e7 fp=0xc4201af4a8 sp=0xc4201af370 pc=0x10aa137
+github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc42000e8d0, 0xc42004e9c0, 0xc42004ea30, 0x1, 0x1, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:73 +0x539 fp=0xc4201af618 sp=0xc4201af4a8 pc=0x109eb99
+github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc42000e930, 0xc42004e9c0, 0x4, 0x1, 0x2, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:69 +0x45a fp=0xc4201af788 sp=0xc4201af618 pc=0x109eaba
+github.mheducation.com/dave-mcmath/scam/sexpr.evalCond(0x11633e0, 0xc4200da8d0, 0xc42004e9c0, 0x1163360, 0xc42000a140, 0x0, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:477 +0x3dc fp=0xc4201af8a0 sp=0xc4201af788 pc=0x10a1f5c
+github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc4200da900, 0xc42004e9c0, 0x1, 0x11633a0, 0xc42000bc40, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:76 +0x31e fp=0xc4201afa10 sp=0xc4201af8a0 pc=0x109e97e
+github.mheducation.com/dave-mcmath/scam/sexpr.evalLambda.func1(0xc42000bc00, 0x2, 0x2, 0x11633a0, 0xc42000bc40, 0x0, 0x0)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/function.go:456 +0x3e7 fp=0xc4201afb48 sp=0xc4201afa10 pc=0x10aa137
+github.mheducation.com/dave-mcmath/scam/sexpr.evaluateWithContext(0x11633e0, 0xc4200dab70, 0x1174b10, 0xc4200780c0, 0xc420193d78, 0x1, 0x101)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:73 +0x539 fp=0xc4201afcb8 sp=0xc4201afb48 pc=0x109eb99
+github.mheducation.com/dave-mcmath/scam/sexpr.Evaluate(0x11633e0, 0xc4200dab70, 0xc420193d01, 0x1)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/evaluator.go:37 +0x45 fp=0xc4201afd00 sp=0xc4201afcb8 pc=0x109e5e5
 github.mheducation.com/dave-mcmath/scam/repl.(*repl).Run(0xc42005a0c0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/repl/repl.go:44 +0x382 fp=0xc42019fdd8 sp=0xc42019fd00 pc=0x10ad1c2
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/repl/repl.go:44 +0x382 fp=0xc4201afdd8 sp=0xc4201afd00 pc=0x10ad1c2
 main.main()
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/scam.go:64 +0x1d5 fp=0xc42019ff80 sp=0xc42019fdd8 pc=0x10b2215
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/scam.go:64 +0x1d5 fp=0xc4201aff80 sp=0xc4201afdd8 pc=0x10b2215
 runtime.main()
-	/usr/local/Cellar/go/1.9.2/libexec/src/runtime/proc.go:195 +0x226 fp=0xc42019ffe0 sp=0xc42019ff80 pc=0x1029266
+	/usr/local/Cellar/go/1.9.2/libexec/src/runtime/proc.go:195 +0x226 fp=0xc4201affe0 sp=0xc4201aff80 pc=0x1029266
 runtime.goexit()
-	/usr/local/Cellar/go/1.9.2/libexec/src/runtime/asm_amd64.s:2337 +0x1 fp=0xc42019ffe8 sp=0xc42019ffe0 pc=0x1051391
+	/usr/local/Cellar/go/1.9.2/libexec/src/runtime/asm_amd64.s:2337 +0x1 fp=0xc4201affe8 sp=0xc4201affe0 pc=0x1051391
 
 goroutine 5 [chan send]:
 github.mheducation.com/dave-mcmath/scam/repl.fillRuneChannelFromScanner(0xc42008e000, 0xc420078060, 0x0, 0x0)
@@ -79,23 +242,27 @@ created by github.mheducation.com/dave-mcmath/scam/repl.(*repl).Run
 	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/repl/repl.go:32 +0xa9
 
 goroutine 6 [runnable]:
-github.mheducation.com/dave-mcmath/scam/sexpr.matchOneOf(0xc400000038, 0xc420142f88, 0x1, 0x1, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/lexer.go:166 +0x87
-github.mheducation.com/dave-mcmath/scam/sexpr.(*lexer).acceptUntilPredicate(0xc420084140, 0xc420142f88, 0x1, 0x1)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/lexer.go:207 +0x7a
-github.mheducation.com/dave-mcmath/scam/sexpr.lexComment(0xc420084140, 0x10f1038)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/lexer.go:408 +0x77
+github.mheducation.com/dave-mcmath/scam/sexpr.mkLookupFunc.func1(0xc400000037, 0xc400000037)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/lexer.go:73 +0x59
+github.mheducation.com/dave-mcmath/scam/sexpr.(*lexer).acceptPredicate(0xc420084140, 0xc420034710, 0x1, 0x1, 0xc420034701)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/lexer.go:182 +0x78
+github.mheducation.com/dave-mcmath/scam/sexpr.(*lexer).acceptRunPredicate(0xc420084140, 0xc420034710, 0x1, 0x1)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/lexer.go:195 +0x49
+github.mheducation.com/dave-mcmath/scam/sexpr.(*lexer).acceptRun(0xc420084140, 0x10ea509, 0xa)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/lexer.go:192 +0x72
+github.mheducation.com/dave-mcmath/scam/sexpr.lexNumber(0xc420084140, 0x10f1040)
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/lexer.go:364 +0xb9
 github.mheducation.com/dave-mcmath/scam/sexpr.(*lexer).run(0xc420084140)
 	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/lexer.go:82 +0x37
 created by github.mheducation.com/dave-mcmath/scam/sexpr.lex
 	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/lexer.go:237 +0xf0
 
-goroutine 7 [runnable]:
-github.mheducation.com/dave-mcmath/scam/sexpr.(*parser).popStackUntil(0xc42000e5a0, 0x1163420, 0xc4200e0670, 0xc4200e0670, 0x1, 0x3, 0x0, 0x0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/parser.go:91 +0x4ed
+goroutine 7 [chan receive]:
 github.mheducation.com/dave-mcmath/scam/sexpr.(*parser).run(0xc42000e5a0)
-	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/parser.go:161 +0x1ec
+	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/parser.go:150 +0xa9
 created by github.mheducation.com/dave-mcmath/scam/sexpr.Parse
 	/Users/mcdave/go/src/github.mheducation.com/dave-mcmath/scam/sexpr/parser.go:143 +0x13d
 exit status 2
+[1]-  Done                    emacs
+biblio:scam mcdave (schemer_04)$ 
 #+END_SRC
