@@ -83,7 +83,7 @@ and type.  There is no "exit" command; send end-of-file with `C-d`.
 Or
 
     go run cmd/scam_server/main.go -port 8000 &
-    echo "(= (car (cons 1 2) 2))" | nc localhost 8000
+    echo "(= (car (cons 1 2)) 2)" | nc localhost 8000
 
 ### ...with compiling
 
